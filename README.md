@@ -267,6 +267,22 @@ Collapsible sections, top toolbar with **Import / Export / Master Reset**:
 - No accounts. No cookies that persist beyond the tab. No telemetry. The Next.js telemetry beacon is disabled in `package.json` (`NEXT_TELEMETRY_DISABLED=1`).
 - **Backup tip:** `Settings → Library → Export` writes your full library to a JSON file. Pads can be saved individually with `Ctrl+S`.
 
+### About the `npm install` audit warnings
+
+When you run `npm install` (or the launcher's first-run setup), npm will report **2 vulnerabilities** in transitive dependencies of Next.js. They look scary. Here's the honest read:
+
+| Advisory                                 | What it actually requires to be exploited        | Affects this app? |
+|------------------------------------------|--------------------------------------------------|:-----------------:|
+| Next.js Image Optimizer DoS / cache      | Use of `next/image` with remote URLs             | ❌ not used        |
+| Next.js RSC HTTP deserialization DoS     | React Server Components on a public server       | ❌ pure client SPA |
+| Next.js Server Component DoS             | RSC streaming on a public server                 | ❌ pure client SPA |
+| Next.js HTTP request smuggling           | `next.config.js` rewrites                        | ❌ no rewrites     |
+| postcss `</style>` XSS                   | Feeding user input through `postcss.stringify`   | ❌ build-time only |
+
+LyricalCAD runs entirely client-side on **your localhost**, with no `next/image`, no rewrites, and no Server Component streaming. None of these CVEs have a viable attack surface in this app. The fix path npm offers is a major Next.js bump that's deferred to a future polish pass; nothing about the warning blocks safe local use.
+
+If you'd rather not see the warnings: `npm install --no-audit`.
+
 ---
 
 ## Tech stack
