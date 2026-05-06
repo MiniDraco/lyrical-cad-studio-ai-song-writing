@@ -24,8 +24,11 @@ import {
 } from '@/lib/colors';
 
 export default function StudioLayout() {
-  const [dockOpen, setDockOpen] = useState(true);
-  const [styleOpen, setStyleOpen] = useState(true);
+  // Open to a clean canvas — testers see the lyric pad and discover surfaces
+  // by clicking topbar buttons. Use the dock toggle (top-left ⏸ icon) for the
+  // tag tray and the "✦ Style Pad" button for the style surface.
+  const [dockOpen, setDockOpen] = useState(false);
+  const [styleOpen, setStyleOpen] = useState(false);
   const [creativityOpen, setCreativityOpen] = useState(false);
   const [randomOpen, setRandomOpen] = useState(false);
   const [pocketOpen, setPocketOpen] = useState(false);
