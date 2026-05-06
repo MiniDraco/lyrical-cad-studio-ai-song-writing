@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 📖 README & usage guide
+    url: https://github.com/MiniDraco/lyrical-cad-studio-ai-song-writing#usage-guide
+    about: Tour of every surface, the keyboard cheatsheet, and the privacy note.
+  - name: ⌨️ In-app help
+    url: https://github.com/MiniDraco/lyrical-cad-studio-ai-song-writing#keyboard--gesture-cheatsheet
+    about: Press Ctrl+? in the app for the live cheatsheet — every shortcut and gesture.

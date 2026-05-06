@@ -1,0 +1,64 @@
+name: 💡 Feature request
+description: Suggest something LyricalCAD doesn't do yet.
+title: "[Idea] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Got an idea? Tell me about the *problem* first, then the *shape* of the solution. The best feature requests describe a writing moment that the app doesn't currently serve.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem are you trying to solve?
+      description: The writing situation that the current app makes harder than it should be.
+      placeholder: |
+        e.g. When I'm rewriting a chorus, I want to compare the syllable shape of three drafts at once.
+        Right now I have to switch between pad tabs and lose the visual flow.
+    validations:
+      required: true
+
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would you like to see?
+      description: How would the feature look or work? Sketches, screenshots from other apps, or even rough wording is fine.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Which surface would this live in?
+      options:
+        - Lyric Pad
+        - Style Pad
+        - Tag Tray / Pills
+        - Fusion Slot
+        - Pocket
+        - Ghost Mode
+        - IntelliSense / Word Pill
+        - Quest / Creativity / Random
+        - Settings
+        - New surface entirely
+        - Not sure
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Workarounds you've tried
+      description: Have you found a partial solution within the app today? What falls short about it?
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: How blocked are you without this?
+      options:
+        - Nice-to-have / polish
+        - Would make this much smoother
+        - Actively avoiding writing because of this
+    validations:
+      required: true

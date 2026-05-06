@@ -1,0 +1,90 @@
+name: 🐛 Bug report
+description: Something is broken or behaving unexpectedly.
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report this! A few details up front make fixes much faster.
+
+        **Before submitting:** if you can, open `⚙ Settings → Library → Export` and attach the JSON to this issue. It lets the bug be reproduced with your exact state.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: One or two sentences. What did you see go wrong?
+      placeholder: e.g. Right-clicking a misspelled word doesn't show spellcheck suggestions.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Walk me through what you did, click by click.
+      placeholder: |
+        1. Type "freind" in the lyric pad
+        2. Wait for the red squiggle to appear
+        3. Right-click the word
+        4. Expected: native spellcheck menu with suggestions
+        5. Got: nothing happens / wrong menu / etc.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect?
+      placeholder: A native browser context menu with "freind → friend" and similar suggestions.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Which part of the app?
+      options:
+        - Lyric Pad (typing surface)
+        - Style Pad
+        - Tag Tray / Pills
+        - Fusion Slot
+        - Pocket
+        - Ghost Mode
+        - IntelliSense / Word Pill
+        - Settings
+        - Quest / Creativity / Random
+        - Launcher (launch.bat / launch.sh)
+        - Other / not sure
+    validations:
+      required: true
+
+  - type: input
+    id: browser
+    attributes:
+      label: Browser & version
+      placeholder: e.g. Chrome 131, Firefox 132, Edge 131, Safari 18
+    validations:
+      required: true
+
+  - type: input
+    id: os
+    attributes:
+      label: Operating system
+      placeholder: e.g. Windows 11, macOS 14.5, Ubuntu 22.04
+    validations:
+      required: true
+
+  - type: textarea
+    id: screenshot
+    attributes:
+      label: Screenshot or screen recording
+      description: Drag-drop into the box. A short clip beats a thousand words.
+
+  - type: textarea
+    id: console
+    attributes:
+      label: Browser console errors (optional)
+      description: Open DevTools (F12) → Console tab → paste any red text.
+      render: shell
