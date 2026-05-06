@@ -278,13 +278,17 @@ export default function StudioLayout() {
 
         <button
           onClick={() => setDockOpen((o) => !o)}
-          className="p-1.5 rounded text-studio-muted hover:text-studio-text hover:bg-studio-hover transition-colors"
-          title={dockOpen ? 'Collapse dock' : 'Expand dock'}
+          className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium transition-all border ${
+            dockOpen
+              ? 'bg-orange-600/20 text-orange-300 border-orange-500/40'
+              : 'text-studio-muted hover:text-studio-text border-studio-border hover:border-studio-text/30'
+          }`}
+          title={dockOpen
+            ? 'Collapse the Tag Tray sidebar'
+            : 'Open the Tag Tray — your reusable pills, branches, and custom categories'}
         >
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-            {dockOpen ? <path d="M6 2H2v12h4V2zm2 0v12h6V2H8z" opacity=".6" />
-                     : <path d="M2 2h12v12H2V2zm2 2v8h8V4H4z" opacity=".6" />}
-          </svg>
+          <span>🏷</span>
+          <span>Tags</span>
         </button>
 
         <button
