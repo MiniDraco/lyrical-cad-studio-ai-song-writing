@@ -9,6 +9,7 @@ import StyleStudio from '@/components/dock/StyleStudio';
 import CreativityTray from '@/components/dock/CreativityTray';
 import RandomGen from '@/components/dock/RandomGen';
 import Pocket from '@/components/dock/Pocket';
+import IntelliPane from '@/components/dock/IntelliPane';
 import SettingsModal from '@/components/layout/SettingsModal';
 import QuestModal from '@/components/layout/QuestModal';
 import HelpModal from '@/components/layout/HelpModal';
@@ -35,8 +36,10 @@ export default function StudioLayout() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [questOpen, setQuestOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [intelliPaneOpen, setIntelliPaneOpen] = useState(false);
   const pocketBtnRef = useRef<HTMLButtonElement>(null);
   const questBtnRef = useRef<HTMLButtonElement>(null);
+  const intelliBtnRef = useRef<HTMLButtonElement>(null);
   const {
     isGhostMode, rhythmicSkeleton, lyricText, customSylColors, pocketItems, addPocketItem,
     sylBgAlpha, ghostMatchColor, ghostMismatchColor, ghostMatchAlphaMul, catColors,
@@ -518,6 +521,9 @@ export default function StudioLayout() {
       {pocketOpen && (
         <Pocket onClose={() => setPocketOpen(false)} anchor={pocketBtnRef.current} />
       )}
+      {intelliPaneOpen && (
+        <IntelliPane onClose={() => setIntelliPaneOpen(false)} anchor={intelliBtnRef.current} />
+      )}
 
       <footer className="flex-shrink-0 flex flex-wrap items-center gap-2 px-3 py-1 border-t border-studio-border bg-studio-surface text-xs text-studio-muted">
         <button
@@ -557,8 +563,30 @@ export default function StudioLayout() {
           🎲 Random
         </button>
 
+        <button
+          ref={intelliBtnRef}
+          onClick={() => setIntelliPaneOpen((o) => !o)}
+          className={`flex items-center gap-1 px-2 py-0.5 rounded border transition-colors ${
+            intelliPaneOpen
+              ? 'bg-blue-600/30 text-blue-200 border-blue-400/60'
+              : 'text-blue-300 border-blue-500/30 hover:bg-blue-600/20 hover:border-blue-400/50'
+          }`}
+          title="Words pane — Datamuse suggestions for the word at the caret"
+        >
+          🧠 Words
+        </button>
+
         <span className="text-studio-border">|</span>
         <span>LyricalCAD Studio v1.0</span>
+        <a
+          href="https://cash.app/$minidraco711"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-pink-400/80 hover:text-pink-300 underline decoration-dotted"
+          title="If LyricalCAD made your writing easier, drop a coffee tip — Cash App: $minidraco711"
+        >
+          ☕ buy me a coffee · $minidraco711
+        </a>
         <span className="ml-auto">
           Syl-A <span className="inline-block w-3 h-3 rounded-sm syl-a align-middle" />
           &nbsp;Syl-B <span className="inline-block w-3 h-3 rounded-sm syl-b align-middle" />

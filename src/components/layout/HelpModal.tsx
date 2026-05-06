@@ -23,15 +23,16 @@ const SHORTCUTS: { keys: React.ReactNode; what: string }[] = [
 ];
 
 const GESTURES: { gesture: string; what: string }[] = [
+  { gesture: '🧠 Words (footer)', what: 'Toggle the docked Words pane — auto-suggests for the word at the caret without covering the editor' },
   { gesture: 'Right-click word', what: 'Native menu (spellcheck etc)' },
-  { gesture: 'Ctrl + Right-click word', what: 'Open IntelliSense for that word (Net Tap dropdown — 7 modes)' },
+  { gesture: 'Ctrl + Right-click word', what: 'Open Net Tap floating popup for that word (7 query modes)' },
   { gesture: 'Long-press word (~½s)', what: 'Open the Word Pill — orbit web of related words' },
   { gesture: 'Right-click satellite pill', what: 'Insert that pill into the editor at the caret' },
   { gesture: 'Click satellite pill', what: 'Promote it to the center of the Word Pill' },
   { gesture: 'Drag pill → Pocket', what: 'Save selection / pill into the Pocket' },
   { gesture: 'Drag from Pocket → Pad', what: 'Insert the saved snippet at drop point' },
   { gesture: 'Drop branch on Style pad', what: 'Expand all of its tags as a block' },
-  { gesture: 'Tab in IntelliSense', what: 'Commit the highlighted suggestion' },
+  { gesture: 'Tab in Net Tap popup', what: 'Commit the highlighted suggestion' },
   { gesture: 'Double-click pad tab', what: 'Rename that pad' },
 ];
 
@@ -86,6 +87,21 @@ export default function HelpModal({ onClose }: { onClose: () => void }) {
             sections for syllable colors, ghost colors, pill colors, canvas, button shape, rhyme
             palette, and word probes. Top of Settings has Import / Export / Master Reset.
           </div>
+        </section>
+
+        <section className="p-4 border-t border-studio-border text-xs">
+          <a
+            href="https://cash.app/$minidraco711"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block text-center text-pink-300 hover:text-pink-200"
+            title="Cash App: $minidraco711"
+          >
+            ☕ If LyricalCAD made your writing easier, drop a coffee tip
+            <span className="block text-pink-400/80 text-[11px] mt-0.5">
+              Cash App · <span className="font-mono">$minidraco711</span>
+            </span>
+          </a>
         </section>
       </div>
     </div>

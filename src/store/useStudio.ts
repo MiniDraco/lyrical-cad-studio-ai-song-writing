@@ -265,6 +265,11 @@ interface StudioStore {
     muted: string;   // text-studio-muted override
   };
 
+  /** Word at the caret in the LyricPad. Published by LyricPad's input
+   *  handler; consumed by the docked IntelliPane. NOT persisted — pure
+   *  runtime channel, refreshed on every typing burst. */
+  currentIntelliWord: string;
+
   /** Datamuse word probes — 20 color/topic pairs. An empty topic = inactive slot. */
   wordProbes: WordProbe[];
   /** Master toggle — when off, the live editor stops applying probe highlights. */
@@ -330,6 +335,8 @@ interface StudioStore {
   setProbeTopic: (idx: number, topic: string) => void;
   toggleProbesEnabled: () => void;
   setWordHighlights: (h: Record<string, string>) => void;
+
+  setCurrentIntelliWord: (w: string) => void;
 
   addTag: (tag: string, category: TagCategory) => void;
   removeTag: (tag: string, category: TagCategory) => void;
@@ -414,6 +421,7 @@ export const useStudio = create<StudioStore>()(
       })),
       probesEnabled: false,
       wordHighlights: {},
+      currentIntelliWord: '',
       pocketItems: [],
       quests: [],
       questPoints: 0,
@@ -787,6 +795,8 @@ export const useStudio = create<StudioStore>()(
         }),
       toggleProbesEnabled: () => set((s) => ({ probesEnabled: !s.probesEnabled })),
       setWordHighlights: (h) => set({ wordHighlights: h }),
+
+      setCurrentIntelliWord: (w) => set({ currentIntelliWord: w }),
 
       addPocketItem: (text) =>
         set((s) => {

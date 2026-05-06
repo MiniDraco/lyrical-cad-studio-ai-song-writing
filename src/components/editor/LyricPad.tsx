@@ -4,7 +4,7 @@ import { useRef, useEffect, useCallback, useState, forwardRef, useImperativeHand
 import { useStudio, BRACKET_PAIRS } from '@/store/useStudio';
 import { countLineSyllables, extractSuffix, extractPunctuation } from '@/lib/syllables';
 import { getSuffixColor } from '@/lib/colors';
-import { getCaretOffset, setCaretOffset, getCaretScreenPos, getScrollParent } from '@/lib/caret';
+import { getCaretOffset, setCaretOffset, getScrollParent } from '@/lib/caret';
 import { extractTags, buildEditorHtml, buildGhostBottomHtml, stripTags } from '@/lib/tagParser';
 import { LineData } from '@/types';
 import IntelliSense from './IntelliSense';
@@ -89,6 +89,7 @@ const LyricPad = forwardRef<LyricPadHandle>(function LyricPad(_, externalRef) {
     bracketType,
     probesEnabled,
     wordHighlights,
+    setCurrentIntelliWord,
   } = useStudio();
   const [exportFlash, setExportFlash] = useState(false);
   const [bOpen, bClose] = BRACKET_PAIRS[bracketType];
@@ -442,12 +443,13 @@ const LyricPad = forwardRef<LyricPadHandle>(function LyricPad(_, externalRef) {
     debounceRef.current = setTimeout(() => {
       processContent();
 
-      // IntelliSense — show suggestions for the word at (or just before)
-      // the caret. Old behavior triggered on the previous line's last
-      // word, which only fired in narrow conditions; users were typing
-      // and seeing nothing. Now: while you're in or just past a word
-      // (3+ letters), the panel pops up and the Net Tap dropdown lets
-      // you switch between Rhyme / Synonym / etc.
+      // Publish the word at (or just before) the caret to the store —
+      // the docked IntelliPane in the footer reads `currentIntelliWord`
+      // and refreshes its Datamuse suggestions when the value changes.
+      // The auto-popup floating panel was removed (it covered the
+      // editor and broke the writer's flow). The pane is opt-in via
+      // the footer 🧠 Words button. Ctrl+right-click → Net Tap still
+      // pops the floating IntelliSense for one-shot word lookups.
       const el = editorRef.current;
       if (!el) return;
       const text = getEditorText(el);
@@ -458,22 +460,13 @@ const LyricPad = forwardRef<LyricPadHandle>(function LyricPad(_, externalRef) {
       // is composing a tag, not a regular word.
       const lastOpen = upToCaret.lastIndexOf('[');
       const lastClose = upToCaret.lastIndexOf(']');
-      if (lastOpen > lastClose) { setIntelliOpen(false); return; }
+      if (lastOpen > lastClose) { setCurrentIntelliWord(''); return; }
 
-      // Match the word ending at the caret, with optional trailing
-      // whitespace/punct so we trigger both mid-word and right after
-      // the user types a separator. Apostrophes stay inside the word
-      // so "don't" / "blowin'" come through whole.
+      // Match the word ending at the caret. Apostrophes stay inside the
+      // word so "don't" / "blowin'" come through whole.
       const m = upToCaret.match(/([A-Za-z][A-Za-z']{2,})[\s.,;:!?"'-]*$/);
       const seed = m ? m[1].replace(/[^a-zA-Z']/g, '') : '';
-
-      if (seed.length >= 3) {
-        setIntelliQuery(seed);
-        const pos = getCaretScreenPos();
-        if (pos) { setIntelliPos(pos); setIntelliOpen(true); }
-      } else {
-        setIntelliOpen(false);
-      }
+      setCurrentIntelliWord(seed.length >= 3 ? seed : '');
     }, 220);
 
     // After a longer idle, force a rebuild so colors catch up even if the
@@ -488,7 +481,7 @@ const LyricPad = forwardRef<LyricPadHandle>(function LyricPad(_, externalRef) {
     // skips processContent's rebuild + auto-scroll, so without this the
     // viewport stays put while the caret marches off-screen.
     keepCaretInView();
-  }, [processContent, scheduleCaret, keepCaretInView]);
+  }, [processContent, scheduleCaret, keepCaretInView, setCurrentIntelliWord]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLDivElement>) => {

@@ -167,15 +167,17 @@ Press **Ctrl+G** (or click the ghost icon). The current pad's text is captured a
 <details>
 <summary><b>🧠 IntelliSense & the Word Pill</b></summary>
 
-Two lookup surfaces, both powered by [Datamuse](https://www.datamuse.com/api/):
+Three lookup surfaces, all powered by [Datamuse](https://www.datamuse.com/api/):
 
 | Trigger                       | What it does                                                   |
 |-------------------------------|----------------------------------------------------------------|
-| **Type past 3 letters**       | Inline IntelliSense suggests completions; **Tab** to commit.   |
+| **Click 🧠 Words in footer**  | Toggle the **docked Words pane** — auto-suggests for whatever word the caret sits on. Stays out of the editor's way. |
 | **Long-press a word (~½s)**   | Opens **Word Pill** — center word with related words orbiting. |
-| **Ctrl + Right-click a word** | Opens **Net Tap** — pick a mode (rhyme, synonym, antonym…).    |
+| **Ctrl + Right-click a word** | Opens **Net Tap** floating popup — pick a mode (rhyme, synonym, antonym…); **Tab** commits. |
 
 Inside the Word Pill: **click** a satellite to promote it to center, **right-click** to insert it into the pad at the caret.
+
+Inside the docked Words pane: clicking a suggestion inserts it at the caret without stealing focus, so you can keep typing.
 
 </details>
 
@@ -245,9 +247,10 @@ Collapsible sections, top toolbar with **Import / Export / Master Reset**:
 | `Ctrl` + `'`                              | Cycle bracket type (`[ → { → ( → < → ø`)                      |
 | `Ctrl` + `?`                              | Open the in-app cheatsheet                                    |
 | `Esc`                                     | Close any open popover / modal                                |
-| `Tab` (in IntelliSense)                   | Commit the highlighted suggestion                             |
+| Click 🧠 Words (footer)                    | Toggle the docked Words pane (auto-suggests for the caret word) |
+| `Tab` (in Net Tap popup)                  | Commit the highlighted suggestion                             |
 | Right-click word                          | Native browser menu (spellcheck, etc.)                        |
-| `Ctrl` + Right-click word                 | Open Net Tap dropdown for that word                           |
+| `Ctrl` + Right-click word                 | Open Net Tap floating popup for that word                     |
 | Long-press word (~½s)                     | Open the Word Pill                                            |
 | Right-click a satellite pill              | Insert that pill at the caret                                 |
 | Click a satellite pill                    | Promote it to the center of the Word Pill                     |
@@ -363,5 +366,13 @@ The single most useful debug step: **Settings → Export Library** before report
 <div align="center">
 
 *Built for the kind of writer who keeps thirty half-finished pads open at once.*
+
+---
+
+### ☕ Like the software?
+
+If LyricalCAD made your writing easier, you can drop a coffee tip:
+
+**Cash App:** [`$minidraco711`](https://cash.app/$minidraco711)
 
 </div>
