@@ -277,29 +277,23 @@ function splitTail(word: string): { before: string; tail: string; after: string 
 }
 
 /**
- * Render a word with its syllable bg + last-2-letters in suffix-rhyme color.
+ * Render a word in the live editor as a SINGLE text node. The previous
+ * implementation split each rhyme-point word into three sibling spans
+ * (before / colored-tail / after) so the last 2 letters could carry the
+ * suffix-rhyme color inline — but that fragmentation broke Chromium's
+ * spellcheck context menu: the red squiggle still drew, but right-click
+ * couldn't bind replacement suggestions back to a single text node, so
+ * "Add to dictionary" / "Change to…" stopped appearing.
  *
- * The DOM structure here is INTENTIONALLY identical to the camouflage
- * branch in buildGhostBottomHtml — same span wrapping, same inline
- * font-weight on the tail. Without that, the rasterized ghost snapshot
- * and the live editor rendered the same text at slightly different
- * sub-pixel positions (transparent-span before/after vs. plain text),
- * which threw the visible 2-letter tails out of alignment with the
- * snapshot boxes underneath.
+ * Rhyme color still surfaces in two places:
+ *   - the SyllableGutter chip on each line (LineData.rhymeColor)
+ *   - the ghost-mode camouflage layer (buildGhostBottomHtml keeps the
+ *     3-span split because that path NEEDS to color individual letters
+ *     to make its "everything invisible except the rhyme tail" effect
+ *     work — and the ghost layer is non-editable, so spellcheck doesn't
+ *     care).
  */
 function renderWordWithTail(word: string, sylClass: string): string {
-  const { before, tail, after } = splitTail(word);
-  if (!tail) {
-    return `<span class="${sylClass}">${escHtml(word)}</span>`;
-  }
-  const tailLetters = tail.replace(/[^a-zA-Z]/g, '').toLowerCase();
-  const color = getSuffixColor(tailLetters);
-  return (
-    `<span class="${sylClass}">` +
-    `<span>${escHtml(before)}</span>` +
-    `<span style="color:${color};font-weight:600">${escHtml(tail)}</span>` +
-    `<span>${escHtml(after)}</span>` +
-    `</span>`
-  );
+  return `<span class="${sylClass}">${escHtml(word)}</span>`;
 }
 
