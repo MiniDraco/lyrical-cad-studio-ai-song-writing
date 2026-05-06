@@ -47,3 +47,5 @@ next-env.d.ts
 # Claude Code session caches (keep launch.json for the dev preview but
 # don't ship the local-only settings file or other session state).
 .claude/settings.local.json
+.claude/scheduled_tasks.lock
+.claude/*.log
