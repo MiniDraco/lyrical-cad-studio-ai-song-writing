@@ -1,0 +1,259 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --line-h: 2rem;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+:root {
+  --main-text-color: #e2e8f0;
+  --main-canvas-color: #0d0f14;
+  --btn-radius: 0.25rem;
+}
+
+/* Global button shape morph — driven by the Button Morph slider in
+ * Settings. Overrides Tailwind's per-button rounded utilities so the
+ * UI stays uniform: 0 = rectangle, ~0.4rem = standard, 9999px = pill.
+ * The polygon preset replaces the radius with a chamfered clip-path so
+ * it actually reads as an octagonal "polygon" instead of a stretched
+ * rounded rectangle. */
+button {
+  border-radius: var(--btn-radius) !important;
+  clip-path: var(--btn-clip-path, none) !important;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background: var(--main-canvas-color);
+  color: var(--main-text-color);
+  font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+}
+
+/* ─── Syllable Highlights ─────────────────────────────── */
+:root {
+  /* Background opacity for the syllable boxes — overridden at runtime
+     via inline style on the StudioLayout root from sylBgAlpha. */
+  --syl-bg-alpha: 0.12;
+}
+
+.syl-a {
+  background: rgba(74, 158, 255, var(--syl-bg-alpha));
+  border-bottom: 1px solid rgba(74, 158, 255, 0.35);
+  border-radius: 2px;
+}
+
+.syl-b {
+  background: rgba(154, 117, 234, var(--syl-bg-alpha));
+  border-bottom: 1px solid rgba(154, 117, 234, 0.35);
+  border-radius: 2px;
+}
+
+/* Ghost-mode per-line feedback: syllable boxes on a typed line that
+ * matches the captured target syllable count turn green; mismatches
+ * turn red. Colors and alpha multiplier are user-configurable via the
+ * Settings panel — driven by CSS variables on the StudioLayout root. */
+:root {
+  --syl-match-rgb: 78, 203, 113;
+  --syl-mismatch-rgb: 255, 107, 107;
+  --syl-match-alpha-mul: 2.4;
+}
+.syl-match {
+  background: rgba(var(--syl-match-rgb), calc(var(--syl-bg-alpha) * var(--syl-match-alpha-mul))) !important;
+  border-bottom-color: rgba(var(--syl-match-rgb), 0.55) !important;
+}
+.syl-mismatch {
+  background: rgba(var(--syl-mismatch-rgb), calc(var(--syl-bg-alpha) * var(--syl-match-alpha-mul))) !important;
+  border-bottom-color: rgba(var(--syl-mismatch-rgb), 0.55) !important;
+}
+
+/* ─── Inline Tag Text (typed [tag]) ──────────────────── */
+.inline-tag {
+  background: rgba(255, 165, 0, 0.18);
+  box-shadow: inset 0 0 0 1px rgba(255, 165, 0, 0.4);
+  border-radius: 3px;
+  color: #fbbf24;
+  padding: 0 2px;
+}
+
+.word-tail {
+  font-weight: 600;
+}
+
+/* Ghost-mode match/mismatch indicators live in the gutter (green/red
+ * syllable counts) — wrapping each line in a display:block span here
+ * was inflating the ghost pad's line height vs. normal mode. */
+
+/* ─── Lyric Pad ──────────────────────────────────────── */
+#lyric-pad,
+#ghost-pad,
+#style-pad {
+  outline: none;
+  line-height: var(--line-h);
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  overflow-anchor: none;
+  caret-color: transparent;
+  min-height: 100%;
+  padding: 1.5rem 1rem 4rem 1rem;
+  /* Editor font is independent of the global UI scale so users can
+   * crank UI down to 30% without their lyric font shrinking with it. */
+  font-family: var(--editor-font-family, inherit);
+  font-size: var(--editor-font-size, 16px);
+  font-weight: var(--editor-font-weight, normal);
+  font-style: var(--editor-font-style, normal);
+  color: var(--main-text-color);
+}
+
+/* Lyric pad sits behind the floating syllable gutter (~40px wide on
+ * the right edge of the captureRoot). Bumping right padding here gives
+ * a small visible buffer so wrapped lyric text doesn't run under the
+ * gutter pills. The Ghost overlay shares the same padding so its line
+ * wrapping mirrors the live editor pixel-for-pixel. */
+#lyric-pad,
+#ghost-pad {
+  padding-right: 3rem;
+}
+
+/* ─── Custom blinking caret ──────────────────────────── */
+.lyric-caret {
+  position: fixed;
+  width: 2px;
+  z-index: 50;
+  pointer-events: none;
+  border-radius: 1px;
+  animation: lyric-caret-blink 1.06s steps(2, jump-none) infinite;
+}
+
+@keyframes lyric-caret-blink {
+  0%   { opacity: 1; }
+  50%  { opacity: 1; }
+  51%  { opacity: 0; }
+  100% { opacity: 0; }
+}
+
+#lyric-pad.drag-target {
+  background: rgba(74, 158, 255, 0.04);
+}
+
+#lyric-pad:empty::before {
+  content: attr(data-placeholder);
+  color: #3a4260;
+  pointer-events: none;
+}
+
+/* ─── Scrollbar ──────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #141720;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #252a38;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #333a52;
+}
+
+/* ─── Pill Styles ────────────────────────────────────── */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px 2px 10px;
+  /* Pill shape is user-controlled via the Settings → Pill Shape selector.
+   * The 999px / none defaults match the original "always-pill" look. */
+  border-radius: var(--pill-radius, 999px);
+  clip-path: var(--pill-clip-path, none);
+  font-size: 0.78rem;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: grab;
+  transition: opacity 0.15s, transform 0.1s;
+  user-select: none;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.pill:active {
+  cursor: grabbing;
+  transform: scale(0.96);
+}
+
+.pill.dragging {
+  opacity: 0.5;
+}
+
+/* ─── Glass Panel ────────────────────────────────────── */
+.glass {
+  background: rgba(20, 23, 32, 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* ─── IntelliSense ───────────────────────────────────── */
+.intellisense {
+  position: fixed;
+  z-index: 1000;
+  min-width: 200px;
+  max-width: 320px;
+  max-height: 260px;
+  overflow-y: auto;
+  background: #1a1e2a;
+  border: 1px solid #252a38;
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+}
+
+.intellisense-item {
+  padding: 6px 12px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #c4cfdf;
+  transition: background 0.1s;
+}
+
+.intellisense-item:hover,
+.intellisense-item.active {
+  background: rgba(74, 158, 255, 0.15);
+  color: #e2e8f0;
+}
+
+/* ─── Fusion Drop Zone ───────────────────────────────── */
+.fusion-drop {
+  border: 2px dashed #252a38;
+  border-radius: 10px;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.fusion-drop.drag-over {
+  border-color: #4a9eff;
+  background: rgba(74, 158, 255, 0.08);
+}
+
+/* ─── Category Colors ────────────────────────────────── */
+.cat-style      { background: rgba(74, 158, 255, 0.18); color: #93c5fd; border-color: rgba(74,158,255,0.3); }
+.cat-lyrics     { background: rgba(74, 203, 113, 0.18); color: #86efac; border-color: rgba(74,203,113,0.3); }
+.cat-fx         { background: rgba(154, 117, 234, 0.18); color: #c4b5fd; border-color: rgba(154,117,234,0.3); }
+.cat-mood       { background: rgba(255, 107, 107, 0.18); color: #fca5a5; border-color: rgba(255,107,107,0.3); }
+.cat-instruments{ background: rgba(255, 217, 61, 0.18); color: #fde68a; border-color: rgba(255,217,61,0.3); }
+.cat-genre      { background: rgba(255, 159, 67, 0.18); color: #fdba74; border-color: rgba(255,159,67,0.3); }
+.cat-discovered { background: rgba(255, 165, 0, 0.18);  color: #fbbf24; border-color: rgba(255,165,0,0.3); }
+.cat-custom     { background: rgba(0, 206, 201, 0.18);  color: #67e8f9; border-color: rgba(0,206,201,0.3); }
