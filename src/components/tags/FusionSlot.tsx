@@ -51,40 +51,39 @@ export default function FusionSlot() {
   };
 
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between text-xs">
-        <span className="font-semibold text-studio-text text-xs">⚗ Fusion</span>
+        <span className="font-semibold text-studio-text text-sm">⚗ Fusion Slot</span>
         {droppedPills.length > 0 && (
           <button
             onClick={purge}
-            className="px-1 py-0 rounded text-[10px] text-red-400 hover:text-red-300 border border-red-500/30 hover:bg-red-500/10"
+            className="px-1.5 py-0.5 rounded text-[10px] text-red-400 hover:text-red-300 border border-red-500/30 hover:bg-red-500/10"
             title="Empty the fusion slot"
           >
-            ✕
+            ✕ Purge
           </button>
         )}
       </div>
 
       <div
-        className={`fusion-drop p-1 flex flex-wrap gap-1 rounded items-start content-start ${isDragOver ? 'drag-over' : ''}`}
-        style={{ minHeight: 32 }}
+        className={`fusion-drop min-h-[60px] p-2 flex flex-wrap gap-1.5 rounded-lg items-start content-start ${isDragOver ? 'drag-over' : ''}`}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
       >
         {droppedPills.length === 0 && (
-          <span className="text-[10px] text-studio-muted w-full text-center">
-            Drop 2+ pills
+          <span className="text-xs text-studio-muted w-full text-center pt-3">
+            Drop 2+ pills to fuse
           </span>
         )}
         {droppedPills.map((label) => (
           <span
             key={label}
-            className="pill cat-custom text-[10px] flex items-center gap-0.5 py-0 px-1.5"
+            className="pill cat-custom text-xs flex items-center gap-1"
           >
             {label}
             <button
-              className="opacity-50 hover:opacity-100 text-[10px] leading-none"
+              className="opacity-50 hover:opacity-100 text-xs"
               onClick={() => removePill(label)}
             >
               ×
@@ -98,7 +97,7 @@ export default function FusionSlot() {
           <span
             draggable
             onDragStart={onFusedDragStart}
-            className="pill cat-custom cursor-grab active:cursor-grabbing text-[10px] py-0 px-1.5"
+            className="pill cat-custom cursor-grab active:cursor-grabbing text-xs"
             title="Drag into a pad to inject"
           >
             🔗 {fusedBracketed}
@@ -108,7 +107,7 @@ export default function FusionSlot() {
             className="ml-auto text-[10px] text-blue-400 hover:text-blue-300"
             title="Save to the Style tag library"
           >
-            → Save
+            → Save as Style tag
           </button>
         </div>
       )}

@@ -18,23 +18,44 @@
 
 /* Global button shape morph — driven by the Button Morph slider in
  * Settings. Overrides Tailwind's per-button rounded utilities so the
- * UI stays uniform: 0 = rectangle, ~0.4rem = standard, 9999px = pill.
- * The polygon preset replaces the radius with a chamfered clip-path so
- * it actually reads as an octagonal "polygon" instead of a stretched
- * rounded rectangle. */
+ * UI stays uniform: 0 = rectangle, ~0.4rem = standard, 9999px = pill. */
 button {
   border-radius: var(--btn-radius) !important;
-  clip-path: var(--btn-clip-path, none) !important;
+  /* Prevent the 300ms double-tap zoom delay on iOS Safari without
+   * disabling pinch-zoom on the page itself. */
+  touch-action: manipulation;
 }
 
 html,
 body {
   height: 100%;
+  /* Mobile browsers shrink/grow the viewport as the address bar hides;
+   * 100dvh tracks the *current* visible viewport, which keeps the
+   * footer pinned correctly. Falls back to 100% on older engines. */
+  height: 100dvh;
   margin: 0;
   padding: 0;
   background: var(--main-canvas-color);
   color: var(--main-text-color);
   font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+  /* iOS otherwise zooms text on landscape rotate; we want the app to
+   * stay at the user's chosen scale. */
+  -webkit-text-size-adjust: 100%;
+  /* Stop overscroll bounce from revealing the page underneath. */
+  overscroll-behavior: none;
+}
+
+/* iOS Safari auto-zooms when focusing an input whose font-size is < 16px,
+ * which feels like the page is broken. Apply a 16px floor on form
+ * widgets at coarse pointers. NOT applied to the lyric editor — its
+ * font is user-configurable via the Settings UI and overriding it here
+ * would silently undo their choice. */
+@media (pointer: coarse) {
+  input:not([type='range']):not([type='checkbox']):not([type='radio']),
+  textarea,
+  select {
+    font-size: max(16px, 1em);
+  }
 }
 
 /* ─── Syllable Highlights ─────────────────────────────── */
@@ -116,11 +137,24 @@ body {
 /* Lyric pad sits behind the floating syllable gutter (~40px wide on
  * the right edge of the captureRoot). Bumping right padding here gives
  * a small visible buffer so wrapped lyric text doesn't run under the
- * gutter pills. The Ghost overlay shares the same padding so its line
- * wrapping mirrors the live editor pixel-for-pixel. */
-#lyric-pad,
-#ghost-pad {
+ * gutter pills. The ghost pad and style pad have no gutter overlay,
+ * so they keep the smaller default padding above. */
+#lyric-pad {
   padding-right: 3rem;
+}
+
+/* Tighter editor margins on phones — the desktop 1rem horizontal padding
+ * eats too much of a 375px viewport. Bottom padding stays generous so
+ * the floating action chrome doesn't sit on the last lyric line. */
+@media (max-width: 640px) {
+  #lyric-pad,
+  #ghost-pad,
+  #style-pad {
+    padding: 1rem 0.5rem 3rem 0.5rem;
+  }
+  #lyric-pad {
+    padding-right: 2.5rem;
+  }
 }
 
 /* ─── Custom blinking caret ──────────────────────────── */
@@ -175,10 +209,7 @@ body {
   align-items: center;
   gap: 4px;
   padding: 2px 8px 2px 10px;
-  /* Pill shape is user-controlled via the Settings → Pill Shape selector.
-   * The 999px / none defaults match the original "always-pill" look. */
-  border-radius: var(--pill-radius, 999px);
-  clip-path: var(--pill-clip-path, none);
+  border-radius: 999px;
   font-size: 0.78rem;
   font-weight: 500;
   white-space: nowrap;
@@ -247,6 +278,64 @@ body {
   border-color: #4a9eff;
   background: rgba(74, 158, 255, 0.08);
 }
+
+/* ─── Mobile / touch-device tweaks ───────────────────── */
+
+/* When a sidebar is in mobile-drawer mode it floats above the editor
+ * and gets a subtle elevation so users see it's overlayed, not docked. */
+.mobile-drawer {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  z-index: 60;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.6);
+  width: min(85vw, 320px);
+  max-width: 360px;
+}
+.mobile-drawer.left  { left: 0;  border-right: 1px solid var(--main-canvas-color); }
+.mobile-drawer.right { right: 0; border-left:  1px solid var(--main-canvas-color); }
+.mobile-drawer.wide  { width: min(95vw, 480px); }
+
+.mobile-drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 55;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+}
+
+/* Thicker, more touchable scrollbars on coarse pointers. */
+@media (pointer: coarse) {
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #2f3548;
+  }
+}
+
+/* The intellisense popover anchors to caret position; on tiny screens
+ * the desktop min-width forces overflow, and the small font is hard to
+ * tap. Constrain to viewport with sane mobile sizing. */
+@media (max-width: 640px) {
+  .intellisense {
+    min-width: 160px;
+    max-width: calc(100vw - 24px);
+    max-height: 50vh;
+    font-size: 0.95rem;
+  }
+  .intellisense-item {
+    padding: 10px 14px;
+    font-size: 1rem;
+  }
+}
+
+/* The footer is bottom-pinned; pad the bottom inset for phones with a
+ * home indicator (iPhone X+) so the buttons aren't under the swipe bar. */
+.safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+.safe-top    { padding-top: env(safe-area-inset-top); }
 
 /* ─── Category Colors ────────────────────────────────── */
 .cat-style      { background: rgba(74, 158, 255, 0.18); color: #93c5fd; border-color: rgba(74,158,255,0.3); }

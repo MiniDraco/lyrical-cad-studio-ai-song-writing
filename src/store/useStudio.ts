@@ -247,8 +247,6 @@ interface StudioStore {
   buttonRadius: number;
   /** Named button shape preset (overrides buttonRadius when set). */
   buttonShape: 'free' | 'rectangle' | 'rounded25' | 'rounded50' | 'circle' | 'poly' | 'squared-up' | 'squared-down';
-  /** Named pill shape preset — applied to .pill spans across the UI. */
-  pillShape: 'free' | 'rectangle' | 'rounded25' | 'rounded50' | 'circle' | 'poly' | 'squared-up' | 'squared-down';
   /** Global UI scale 0.3..1.5 (drives html font-size; editor pads opt out). */
   uiScale: number;
   /** Editor font family (lyric + style + ghost pads). */
@@ -264,11 +262,6 @@ interface StudioStore {
     border: string;  // border-studio-border override
     muted: string;   // text-studio-muted override
   };
-
-  /** Word at the caret in the LyricPad. Published by LyricPad's input
-   *  handler; consumed by the docked IntelliPane. NOT persisted — pure
-   *  runtime channel, refreshed on every typing burst. */
-  currentIntelliWord: string;
 
   /** Datamuse word probes — 20 color/topic pairs. An empty topic = inactive slot. */
   wordProbes: WordProbe[];
@@ -325,7 +318,6 @@ interface StudioStore {
   resetRhymePalette: () => void;
   setButtonRadius: (r: number) => void;
   setButtonShape: (s: StudioStore['buttonShape']) => void;
-  setPillShape: (s: StudioStore['pillShape']) => void;
   setUiScale: (s: number) => void;
   setEditorFont: (patch: Partial<{ family: string; size: number; bold: boolean; italic: boolean }>) => void;
   setChromeColor: (key: keyof StudioStore['chromeColors'], value: string) => void;
@@ -335,8 +327,6 @@ interface StudioStore {
   setProbeTopic: (idx: number, topic: string) => void;
   toggleProbesEnabled: () => void;
   setWordHighlights: (h: Record<string, string>) => void;
-
-  setCurrentIntelliWord: (w: string) => void;
 
   addTag: (tag: string, category: TagCategory) => void;
   removeTag: (tag: string, category: TagCategory) => void;
@@ -408,7 +398,6 @@ export const useStudio = create<StudioStore>()(
       rhymePalette: DEFAULT_RHYME_PALETTE,
       buttonRadius: 0.25,
       buttonShape: 'free',
-      pillShape: 'circle',
       uiScale: 1,
       editorFontFamily: "'JetBrains Mono', 'Fira Code', Consolas, monospace",
       editorFontSize: 16,
@@ -421,7 +410,6 @@ export const useStudio = create<StudioStore>()(
       })),
       probesEnabled: false,
       wordHighlights: {},
-      currentIntelliWord: '',
       pocketItems: [],
       quests: [],
       questPoints: 0,
@@ -765,7 +753,6 @@ export const useStudio = create<StudioStore>()(
       resetRhymePalette: () => set({ rhymePalette: DEFAULT_RHYME_PALETTE }),
       setButtonRadius: (r) => set({ buttonRadius: Math.max(0, Math.min(1, r)) }),
       setButtonShape: (s) => set({ buttonShape: s }),
-      setPillShape: (s) => set({ pillShape: s }),
       setUiScale: (s) => set({ uiScale: Math.max(0.3, Math.min(1.5, s)) }),
       setEditorFont: (patch) =>
         set((s) => ({
@@ -795,8 +782,6 @@ export const useStudio = create<StudioStore>()(
         }),
       toggleProbesEnabled: () => set((s) => ({ probesEnabled: !s.probesEnabled })),
       setWordHighlights: (h) => set({ wordHighlights: h }),
-
-      setCurrentIntelliWord: (w) => set({ currentIntelliWord: w }),
 
       addPocketItem: (text) =>
         set((s) => {
@@ -886,7 +871,6 @@ export const useStudio = create<StudioStore>()(
         rhymePalette: state.rhymePalette,
         buttonRadius: state.buttonRadius,
         buttonShape: state.buttonShape,
-        pillShape: state.pillShape,
         uiScale: state.uiScale,
         editorFontFamily: state.editorFontFamily,
         editorFontSize: state.editorFontSize,

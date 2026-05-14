@@ -23,16 +23,14 @@ const SHORTCUTS: { keys: React.ReactNode; what: string }[] = [
 ];
 
 const GESTURES: { gesture: string; what: string }[] = [
-  { gesture: '🧠 Words (footer)', what: 'Toggle the docked Words pane — auto-suggests for the word at the caret without covering the editor' },
-  { gesture: 'Right-click word', what: 'Native menu (spellcheck etc)' },
-  { gesture: 'Ctrl + Right-click word', what: 'Open Net Tap floating popup for that word (7 query modes)' },
+  { gesture: 'Right-click word', what: 'Open IntelliSense for that word (Net Tap dropdown — 7 modes)' },
   { gesture: 'Long-press word (~½s)', what: 'Open the Word Pill — orbit web of related words' },
   { gesture: 'Right-click satellite pill', what: 'Insert that pill into the editor at the caret' },
   { gesture: 'Click satellite pill', what: 'Promote it to the center of the Word Pill' },
   { gesture: 'Drag pill → Pocket', what: 'Save selection / pill into the Pocket' },
   { gesture: 'Drag from Pocket → Pad', what: 'Insert the saved snippet at drop point' },
   { gesture: 'Drop branch on Style pad', what: 'Expand all of its tags as a block' },
-  { gesture: 'Tab in Net Tap popup', what: 'Commit the highlighted suggestion' },
+  { gesture: 'Tab in IntelliSense', what: 'Commit the highlighted suggestion' },
   { gesture: 'Double-click pad tab', what: 'Rename that pad' },
 ];
 
@@ -48,7 +46,7 @@ export default function HelpModal({ onClose }: { onClose: () => void }) {
       className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm"
       onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="glass shadow-2xl w-[520px] max-h-[85vh] overflow-y-auto">
+      <div className="glass shadow-2xl w-full max-w-[520px] mx-3 max-h-[85dvh] overflow-y-auto rounded-lg">
         <div className="flex items-center justify-between px-4 py-3 border-b border-studio-border">
           <span className="font-semibold text-studio-text">❓ Quick Reference</span>
           <button onClick={onClose} className="text-studio-muted hover:text-studio-text text-sm">✕</button>
@@ -58,8 +56,8 @@ export default function HelpModal({ onClose }: { onClose: () => void }) {
           <div className="text-xs font-semibold uppercase tracking-wide text-studio-muted">Keyboard</div>
           <ul className="flex flex-col gap-1.5">
             {SHORTCUTS.map((s, i) => (
-              <li key={i} className="flex items-center gap-3 text-xs">
-                <span className="flex items-center gap-1 w-44 flex-shrink-0">{s.keys}</span>
+              <li key={i} className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 text-xs">
+                <span className="flex items-center gap-1 sm:w-44 flex-shrink-0">{s.keys}</span>
                 <span className="text-studio-text">{s.what}</span>
               </li>
             ))}
@@ -73,8 +71,8 @@ export default function HelpModal({ onClose }: { onClose: () => void }) {
           <div className="text-xs font-semibold uppercase tracking-wide text-studio-muted">Mouse / Drag</div>
           <ul className="flex flex-col gap-1.5">
             {GESTURES.map((g, i) => (
-              <li key={i} className="flex items-start gap-3 text-xs">
-                <span className="text-studio-text font-medium w-44 flex-shrink-0">{g.gesture}</span>
+              <li key={i} className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-3 text-xs">
+                <span className="text-studio-text font-medium sm:w-44 flex-shrink-0">{g.gesture}</span>
                 <span className="text-studio-muted">{g.what}</span>
               </li>
             ))}
@@ -87,21 +85,6 @@ export default function HelpModal({ onClose }: { onClose: () => void }) {
             sections for syllable colors, ghost colors, pill colors, canvas, button shape, rhyme
             palette, and word probes. Top of Settings has Import / Export / Master Reset.
           </div>
-        </section>
-
-        <section className="p-4 border-t border-studio-border text-xs">
-          <a
-            href="https://cash.app/$minidraco711"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="block text-center text-pink-300 hover:text-pink-200"
-            title="Cash App: $minidraco711"
-          >
-            ☕ If LyricalCAD made your writing easier, drop a coffee tip
-            <span className="block text-pink-400/80 text-[11px] mt-0.5">
-              Cash App · <span className="font-mono">$minidraco711</span>
-            </span>
-          </a>
         </section>
       </div>
     </div>

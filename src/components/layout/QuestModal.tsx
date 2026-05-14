@@ -53,10 +53,16 @@ export default function QuestModal({ onClose, anchor }: Props) {
   const [poolSeed, setPoolSeed] = useState(0);
 
   // Anchor above the button (footer is at the bottom of the screen).
+  // The popover is 300px wide; clamp `left` so it never spills off-screen
+  // on narrow viewports (small phones / wrapped footers).
   useEffect(() => {
     if (!anchor) return;
     const r = anchor.getBoundingClientRect();
-    setPos({ left: r.left, bottom: window.innerHeight - r.top + 6 });
+    const POPOVER_W = 300;
+    const GUTTER = 8;
+    const maxLeft = Math.max(GUTTER, window.innerWidth - POPOVER_W - GUTTER);
+    const left = Math.min(Math.max(r.left, GUTTER), maxLeft);
+    setPos({ left, bottom: window.innerHeight - r.top + 6 });
   }, [anchor]);
 
   useEffect(() => {

@@ -45,21 +45,11 @@ export default function IconPicker({ value, onChange, className }: Props) {
   useEffect(() => {
     if (!open || !btnRef.current) return;
     const r = btnRef.current.getBoundingClientRect();
+    // Open below the trigger, but flip up if it would clip the bottom.
     const POP_W = 280;
     const POP_H = 240;
-    const GAP = 4;
-    const margin = 8;
-    const left = Math.max(margin, Math.min(window.innerWidth - POP_W - margin, r.left));
-    // Anchor as close to the trigger as we can manage without going off
-    // the viewport. Below by default; if clipped, slide up just enough
-    // to fit; if THAT clips above, anchor against the top edge. The
-    // earlier "flip-fully-above-trigger" pass overshot and stranded the
-    // popover near the top of the screen.
-    let top = r.bottom + GAP;
-    if (top + POP_H + margin > window.innerHeight) {
-      top = window.innerHeight - POP_H - margin;
-    }
-    if (top < margin) top = margin;
+    const left = Math.max(8, Math.min(window.innerWidth - POP_W - 8, r.left));
+    const top = r.bottom + POP_H + 8 < window.innerHeight ? r.bottom + 4 : r.top - POP_H - 4;
     setPos({ left, top });
   }, [open]);
 

@@ -145,6 +145,10 @@ export default function WordPill({ word, position, onClose, onInsert }: Props) {
           </div>
         )}
 
+        {/* Footer hint */}
+        <div className="absolute left-1/2 -bottom-7 -translate-x-1/2 text-[10px] text-studio-muted whitespace-nowrap">
+          Click pill = dive · Hover for + insert · Esc closes
+        </div>
       </div>
 
       {/* Show which Datamuse modes feed the satellites */}

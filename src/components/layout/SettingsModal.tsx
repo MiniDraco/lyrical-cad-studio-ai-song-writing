@@ -19,24 +19,6 @@ import {
 
 const TAG_CATS: TagCategory[] = ['Style', 'Lyrics', 'FX', 'Mood', 'Instruments', 'Genre'];
 
-/** Curated common font families. Power users can still type a custom CSS
- *  font-family stack via the Custom… option. The label = what the user
- *  sees in the dropdown; the value = the actual CSS font-family value. */
-const FONT_OPTIONS: { label: string; value: string }[] = [
-  { label: 'Mono — JetBrains',     value: "'JetBrains Mono', 'Fira Code', Consolas, monospace" },
-  { label: 'Mono — Fira Code',     value: "'Fira Code', 'Cascadia Code', monospace" },
-  { label: 'Mono — Source',        value: "'Source Code Pro', 'Consolas', monospace" },
-  { label: 'Mono — System',        value: "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" },
-  { label: 'Sans — System',        value: "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" },
-  { label: 'Sans — Inter',         value: "'Inter', system-ui, sans-serif" },
-  { label: 'Sans — Helvetica',     value: "Helvetica, Arial, sans-serif" },
-  { label: 'Serif — Iowan',        value: "'Iowan Old Style', 'Palatino Linotype', Georgia, serif" },
-  { label: 'Serif — Georgia',      value: "Georgia, 'Times New Roman', serif" },
-  { label: 'Serif — Charter',      value: "Charter, 'Bitstream Charter', 'Sitka Text', Cambria, serif" },
-  { label: 'Display — Courier',    value: "'Courier New', Courier, monospace" },
-  { label: 'Display — Cursive',    value: "'Brush Script MT', 'Lucida Handwriting', cursive" },
-];
-
 /** Collapsible section header — click the bar to expand/collapse the body. */
 function Section({
   title,
@@ -102,7 +84,6 @@ export default function SettingsModal({ onClose }: { onClose: () => void }) {
     editorFontFamily, editorFontSize, editorFontBold, editorFontItalic, setEditorFont,
     chromeColors, setChromeColor, resetChromeColors,
     buttonShape, setButtonShape,
-    pillShape, setPillShape,
     masterTagLibrary, setMasterTagLibrary,
     customBranches, importBranches,
     bulkLoadCustomCategoryTags,
@@ -171,7 +152,7 @@ export default function SettingsModal({ onClose }: { onClose: () => void }) {
       className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm"
       onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="glass rounded-lg shadow-2xl w-[480px] max-h-[80vh] overflow-y-auto">
+      <div className="glass rounded-lg shadow-2xl w-full max-w-[480px] mx-3 max-h-[85dvh] overflow-y-auto">
         <div className="flex items-center justify-between px-4 py-3 border-b border-studio-border">
           <span className="font-semibold text-studio-text">⚙️ Settings</span>
           <button onClick={onClose} className="text-studio-muted hover:text-studio-text text-sm">✕</button>
@@ -209,66 +190,18 @@ export default function SettingsModal({ onClose }: { onClose: () => void }) {
           />
         </div>
 
-        <Section title="General" subtitle="Editor font, text color, and global UI scale.">
+        <Section title="General" subtitle="Editor font + global UI scale.">
           <div className="flex flex-col gap-2">
             <label className="flex items-center gap-2 px-2 py-1.5 rounded border border-studio-border bg-studio-bg/40">
               <span className="text-xs text-studio-muted w-20">Font family</span>
-              <select
-                value={
-                  FONT_OPTIONS.some((f) => f.value === editorFontFamily) ? editorFontFamily : '__custom__'
-                }
-                onChange={(e) => {
-                  if (e.target.value === '__custom__') return;
-                  setEditorFont({ family: e.target.value });
-                }}
-                className="flex-1 min-w-0 bg-studio-bg border border-studio-border rounded px-1.5 py-0.5 text-xs outline-none"
-                style={{ fontFamily: editorFontFamily }}
-              >
-                {FONT_OPTIONS.map((f) => (
-                  <option key={f.value} value={f.value} style={{ fontFamily: f.value }}>
-                    {f.label}
-                  </option>
-                ))}
-                <option value="__custom__">Custom… (use the input below)</option>
-              </select>
-              <button
-                onClick={() => setEditorFont({ family: "'JetBrains Mono', 'Fira Code', Consolas, monospace" })}
-                className="text-[10px] text-studio-muted hover:text-studio-text"
-                title="Reset"
-              >
-                ↺
-              </button>
-            </label>
-
-            {/* Custom font input — only relevant when the user picked
-             * a family that isn't in the dropdown. Keeps power-user
-             * access (CSS font-family stack) without cluttering. */}
-            {!FONT_OPTIONS.some((f) => f.value === editorFontFamily) && (
               <input
                 type="text"
                 value={editorFontFamily}
                 onChange={(e) => setEditorFont({ family: e.target.value })}
-                placeholder="e.g. 'Iowan Old Style', Georgia, serif"
-                className="bg-studio-bg border border-studio-border rounded px-1.5 py-0.5 text-xs font-mono outline-none"
-              />
-            )}
-
-            <label className="flex items-center gap-2 px-2 py-1.5 rounded border border-studio-border bg-studio-bg/40">
-              <span className="text-xs text-studio-muted w-20">Text color</span>
-              <input
-                type="color"
-                value={mainTextColor}
-                onChange={(e) => setMainTextColor(e.target.value)}
-                className="h-6 w-9 border border-studio-border bg-transparent cursor-pointer"
-              />
-              <input
-                type="text"
-                value={mainTextColor}
-                onChange={(e) => { if (/^#[0-9a-fA-F]{0,6}$/.test(e.target.value)) setMainTextColor(e.target.value); }}
                 className="flex-1 min-w-0 bg-studio-bg border border-studio-border rounded px-1.5 py-0.5 text-xs font-mono outline-none"
               />
               <button
-                onClick={() => setMainTextColor(DEFAULT_MAIN_TEXT_COLOR)}
+                onClick={() => setEditorFont({ family: "'JetBrains Mono', 'Fira Code', Consolas, monospace" })}
                 className="text-[10px] text-studio-muted hover:text-studio-text"
                 title="Reset"
               >
@@ -506,6 +439,55 @@ export default function SettingsModal({ onClose }: { onClose: () => void }) {
           </div>
         </Section>
 
+        <Section title="Canvas" subtitle="Editor body text color and the main canvas background." defaultOpen={false}>
+          <div className="grid grid-cols-2 gap-2">
+            <label className="flex items-center gap-2 px-2 py-1.5 rounded border border-studio-border bg-studio-bg/40">
+              <span className="text-xs text-studio-muted w-16">Text</span>
+              <input
+                type="color"
+                value={mainTextColor}
+                onChange={(e) => setMainTextColor(e.target.value)}
+                className="h-6 w-10 rounded border border-studio-border bg-transparent cursor-pointer"
+              />
+              <input
+                type="text"
+                value={mainTextColor}
+                onChange={(e) => { if (/^#[0-9a-fA-F]{0,6}$/.test(e.target.value)) setMainTextColor(e.target.value); }}
+                className="flex-1 bg-studio-bg border border-studio-border rounded px-1.5 py-0.5 text-xs font-mono outline-none min-w-0"
+              />
+              <button
+                onClick={() => setMainTextColor(DEFAULT_MAIN_TEXT_COLOR)}
+                className="text-[10px] text-studio-muted hover:text-studio-text"
+                title="Reset"
+              >
+                ↺
+              </button>
+            </label>
+            <label className="flex items-center gap-2 px-2 py-1.5 rounded border border-studio-border bg-studio-bg/40">
+              <span className="text-xs text-studio-muted w-16">Canvas</span>
+              <input
+                type="color"
+                value={mainCanvasColor}
+                onChange={(e) => setMainCanvasColor(e.target.value)}
+                className="h-6 w-10 rounded border border-studio-border bg-transparent cursor-pointer"
+              />
+              <input
+                type="text"
+                value={mainCanvasColor}
+                onChange={(e) => { if (/^#[0-9a-fA-F]{0,6}$/.test(e.target.value)) setMainCanvasColor(e.target.value); }}
+                className="flex-1 bg-studio-bg border border-studio-border rounded px-1.5 py-0.5 text-xs font-mono outline-none min-w-0"
+              />
+              <button
+                onClick={() => setMainCanvasColor(DEFAULT_MAIN_CANVAS_COLOR)}
+                className="text-[10px] text-studio-muted hover:text-studio-text"
+                title="Reset"
+              >
+                ↺
+              </button>
+            </label>
+          </div>
+        </Section>
+
         <Section title="Button Shape" subtitle="Morph every button — rectangle ↔ pill." defaultOpen={false}>
           <div className="flex items-center gap-3 px-2 py-2 rounded border border-studio-border bg-studio-bg/40">
             <span className="text-xs text-studio-muted whitespace-nowrap w-16">Radius</span>
@@ -550,33 +532,6 @@ export default function SettingsModal({ onClose }: { onClose: () => void }) {
           </div>
         </Section>
 
-        <Section title="Pill Shape" subtitle="Same shape vocabulary, applied to every .pill (tags, branches, fusion, etc.)." defaultOpen={false}>
-          <div className="flex items-center gap-1 justify-center flex-wrap">
-            {[
-              { v: 'rectangle' as const,    glyph: '▭',  label: 'Rectangle' },
-              { v: 'rounded25' as const,    glyph: '▢',  label: 'Rounded 25%' },
-              { v: 'rounded50' as const,    glyph: '⬭',  label: 'Rounded 50%' },
-              { v: 'circle' as const,       glyph: '⬬',  label: 'Circle / pill (default)' },
-              { v: 'poly' as const,         glyph: '⬢',  label: 'Polygon' },
-              { v: 'squared-up' as const,   glyph: '⌒',  label: 'Squared up' },
-              { v: 'squared-down' as const, glyph: '⌒̥',  label: 'Squared down' },
-            ].map(({ v, glyph, label }) => (
-              <button
-                key={v}
-                onClick={() => setPillShape(v)}
-                className={`px-3 py-1 text-base border transition-all ${
-                  pillShape === v
-                    ? 'bg-blue-600/30 text-blue-200 border-blue-500/50'
-                    : 'text-studio-muted hover:text-studio-text border-studio-border hover:border-studio-text/30'
-                }`}
-                title={label}
-              >
-                {glyph}
-              </button>
-            ))}
-          </div>
-        </Section>
-
         <Section
           title="Chrome Colors"
           subtitle="Override surface, panel, border, and muted-text shades. Empty = use the default theme."
@@ -589,34 +544,6 @@ export default function SettingsModal({ onClose }: { onClose: () => void }) {
             </button>
           }
         >
-          {/* Canvas color sits up here with the other skin overrides
-           * since it's the same family of choice — picking the page
-           * background is a sibling decision to surface/panel. The
-           * editor's TEXT color lives in the General section near the
-           * font controls, where the user picks how their writing looks. */}
-          <label className="flex items-center gap-2 px-2 py-1.5 rounded border border-studio-border bg-studio-bg/40">
-            <span className="text-xs text-studio-muted w-24">Canvas bg</span>
-            <input
-              type="color"
-              value={mainCanvasColor}
-              onChange={(e) => setMainCanvasColor(e.target.value)}
-              className="h-6 w-9 border border-studio-border bg-transparent cursor-pointer"
-            />
-            <input
-              type="text"
-              value={mainCanvasColor}
-              onChange={(e) => { if (/^#[0-9a-fA-F]{0,6}$/.test(e.target.value)) setMainCanvasColor(e.target.value); }}
-              className="flex-1 min-w-0 bg-studio-bg border border-studio-border rounded px-1.5 py-0.5 text-xs font-mono outline-none"
-            />
-            <button
-              onClick={() => setMainCanvasColor(DEFAULT_MAIN_CANVAS_COLOR)}
-              className="text-[10px] text-studio-muted hover:text-studio-text"
-              title="Reset"
-            >
-              ↺
-            </button>
-          </label>
-
           {([
             { key: 'surface', label: 'Surface', placeholder: 'bg-studio-surface' },
             { key: 'panel',   label: 'Panel',   placeholder: 'bg-studio-panel' },

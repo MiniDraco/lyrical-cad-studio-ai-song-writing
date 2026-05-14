@@ -4,7 +4,7 @@ import { useRef, useEffect, useCallback, useState, forwardRef, useImperativeHand
 import { useStudio, BRACKET_PAIRS } from '@/store/useStudio';
 import { countLineSyllables, extractSuffix, extractPunctuation } from '@/lib/syllables';
 import { getSuffixColor } from '@/lib/colors';
-import { getCaretOffset, setCaretOffset, getScrollParent } from '@/lib/caret';
+import { getCaretOffset, setCaretOffset, getCaretScreenPos, getScrollParent } from '@/lib/caret';
 import { extractTags, buildEditorHtml, buildGhostBottomHtml, stripTags } from '@/lib/tagParser';
 import { LineData } from '@/types';
 import IntelliSense from './IntelliSense';
@@ -69,6 +69,7 @@ const LyricPad = forwardRef<LyricPadHandle>(function LyricPad(_, externalRef) {
   const [intelliQuery, setIntelliQuery] = useState('');
   const [intelliOpen, setIntelliOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [capturing, setCapturing] = useState(false);
   const [caretRect, setCaretRect] = useState<{ top: number; left: number; height: number } | null>(null);
   const [wordPill, setWordPill] = useState<{ word: string; x: number; y: number } | null>(null);
   const holdTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -78,9 +79,11 @@ const LyricPad = forwardRef<LyricPadHandle>(function LyricPad(_, externalRef) {
     addDiscoveredTag,
     masterTagLibrary,
     isGhostMode,
+    ghostBgImage,
+    ghostBgWidth,
+    ghostBgHeight,
     ghostBgOpacity,
     ghostSkeleton,
-    savedLyric,
     lyricText,
     setLyricText,
     enableGhost,
@@ -89,7 +92,6 @@ const LyricPad = forwardRef<LyricPadHandle>(function LyricPad(_, externalRef) {
     bracketType,
     probesEnabled,
     wordHighlights,
-    setCurrentIntelliWord,
   } = useStudio();
   const [exportFlash, setExportFlash] = useState(false);
   const [bOpen, bClose] = BRACKET_PAIRS[bracketType];
@@ -404,12 +406,12 @@ const LyricPad = forwardRef<LyricPadHandle>(function LyricPad(_, externalRef) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [storeHydrated]);
 
-  /* Rebuild the editor when the Word Probe state changes — both when a
-   * new scan completes (highlights map updated) AND when the master
-   * toggle flips. Without the toggle-off rebuild, the previous run's
-   * highlights stayed painted until the user typed something. */
+  /* When the Word Probe scan completes (outside of any keystroke), the
+   * wordHighlights map changes but processContent doesn't re-fire by
+   * itself. Force a rebuild so the new probe matches paint immediately. */
   useEffect(() => {
     if (!hydratedRef.current) return;
+    if (!probesEnabled) return;
     processContent({ force: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [wordHighlights, probesEnabled]);
@@ -443,13 +445,12 @@ const LyricPad = forwardRef<LyricPadHandle>(function LyricPad(_, externalRef) {
     debounceRef.current = setTimeout(() => {
       processContent();
 
-      // Publish the word at (or just before) the caret to the store —
-      // the docked IntelliPane in the footer reads `currentIntelliWord`
-      // and refreshes its Datamuse suggestions when the value changes.
-      // The auto-popup floating panel was removed (it covered the
-      // editor and broke the writer's flow). The pane is opt-in via
-      // the footer 🧠 Words button. Ctrl+right-click → Net Tap still
-      // pops the floating IntelliSense for one-shot word lookups.
+      // IntelliSense — show suggestions for the word at (or just before)
+      // the caret. Old behavior triggered on the previous line's last
+      // word, which only fired in narrow conditions; users were typing
+      // and seeing nothing. Now: while you're in or just past a word
+      // (3+ letters), the panel pops up and the Net Tap dropdown lets
+      // you switch between Rhyme / Synonym / etc.
       const el = editorRef.current;
       if (!el) return;
       const text = getEditorText(el);
@@ -460,13 +461,22 @@ const LyricPad = forwardRef<LyricPadHandle>(function LyricPad(_, externalRef) {
       // is composing a tag, not a regular word.
       const lastOpen = upToCaret.lastIndexOf('[');
       const lastClose = upToCaret.lastIndexOf(']');
-      if (lastOpen > lastClose) { setCurrentIntelliWord(''); return; }
+      if (lastOpen > lastClose) { setIntelliOpen(false); return; }
 
-      // Match the word ending at the caret. Apostrophes stay inside the
-      // word so "don't" / "blowin'" come through whole.
+      // Match the word ending at the caret, with optional trailing
+      // whitespace/punct so we trigger both mid-word and right after
+      // the user types a separator. Apostrophes stay inside the word
+      // so "don't" / "blowin'" come through whole.
       const m = upToCaret.match(/([A-Za-z][A-Za-z']{2,})[\s.,;:!?"'-]*$/);
       const seed = m ? m[1].replace(/[^a-zA-Z']/g, '') : '';
-      setCurrentIntelliWord(seed.length >= 3 ? seed : '');
+
+      if (seed.length >= 3) {
+        setIntelliQuery(seed);
+        const pos = getCaretScreenPos();
+        if (pos) { setIntelliPos(pos); setIntelliOpen(true); }
+      } else {
+        setIntelliOpen(false);
+      }
     }, 220);
 
     // After a longer idle, force a rebuild so colors catch up even if the
@@ -481,7 +491,7 @@ const LyricPad = forwardRef<LyricPadHandle>(function LyricPad(_, externalRef) {
     // skips processContent's rebuild + auto-scroll, so without this the
     // viewport stays put while the caret marches off-screen.
     keepCaretInView();
-  }, [processContent, scheduleCaret, keepCaretInView, setCurrentIntelliWord]);
+  }, [processContent, scheduleCaret, keepCaretInView]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLDivElement>) => {
@@ -612,15 +622,13 @@ const LyricPad = forwardRef<LyricPadHandle>(function LyricPad(_, externalRef) {
     if (holdTimerRef.current) { clearTimeout(holdTimerRef.current); holdTimerRef.current = null; }
   }, []);
 
-  /* Right-click on a word: native context menu (spellcheck etc).
-   * Ctrl/Shift + Right-click on a word: open IntelliSense for that word.
-   * The earlier behavior preventDefaulted every right-click, which
-   * killed the browser's spellcheck suggestions. The modifier-key
-   * variant keeps both gestures available. */
+  /* Right-click on a word in the editor opens IntelliSense at the cursor
+   * position with that word as the seed — gives the user a deterministic
+   * way to trigger the lookup instead of waiting for the typing-driven
+   * debounce to fire. preventDefault stops the native browser menu. */
   const handleContextMenu = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    if (!(e.ctrlKey || e.metaKey || e.shiftKey)) return; // let native menu show
     const word = wordAtPoint(e.clientX, e.clientY);
-    if (!word) return;
+    if (!word) return; // let native menu show on whitespace / empty pad
     e.preventDefault();
     setIntelliQuery(word);
     setIntelliPos({ top: e.clientY + 6, left: e.clientX });
@@ -720,13 +728,105 @@ const LyricPad = forwardRef<LyricPadHandle>(function LyricPad(_, externalRef) {
       return;
     }
 
-    // Live HTML overlay — `enableGhost(null)` just stores savedLyric and
-    // flips isGhostMode. The render path in this component then wraps
-    // an absolute <div id="ghost-pad"> with `buildGhostBottomHtml(savedLyric)`
-    // behind the live editor. Same renderer, same CSS classes, same
-    // padding → pixel-for-pixel alignment with the user's typed text.
-    // No html2canvas, no capture wait, no rasterization drift.
-    enableGhost(null);
+    if (!lyricText.trim()) {
+      enableGhost(null);
+      return;
+    }
+
+    setCapturing(true);
+    let ghostNode: HTMLElement | null = null;
+    try {
+      const editorRect = el.getBoundingClientRect();
+      const cs = window.getComputedStyle(el);
+      const width = Math.max(editorRect.width, 100);
+      // Read the live canvas color from the StudioLayout root. Hardcoding
+      // #0d0f14 made the snapshot show the default-dark background as a
+      // banner whenever the user picked a different canvas color.
+      const liveCanvas = useStudio.getState().mainCanvasColor || '#0d0f14';
+
+      const ghostDiv = document.createElement('div');
+      ghostDiv.id = 'ghost-pad';
+      ghostDiv.innerHTML = buildGhostBottomHtml(lyricText);
+      ghostDiv.style.position = 'fixed';
+      ghostDiv.style.left = '-99999px';
+      ghostDiv.style.top = '0';
+      ghostDiv.style.width = `${width}px`;
+      ghostDiv.style.minHeight = '0';
+      ghostDiv.style.height = 'auto';
+      ghostDiv.style.background = liveCanvas;
+      ghostDiv.style.color = cs.color;
+      ghostDiv.style.fontFamily = cs.fontFamily;
+      ghostDiv.style.fontSize = cs.fontSize;
+      ghostDiv.style.fontWeight = cs.fontWeight;
+      ghostDiv.style.lineHeight = cs.lineHeight;
+      ghostDiv.style.letterSpacing = cs.letterSpacing;
+      ghostDiv.style.padding = cs.padding;
+      ghostDiv.style.whiteSpace = cs.whiteSpace;
+      ghostDiv.style.wordWrap = cs.wordWrap;
+      ghostDiv.style.overflowWrap = cs.overflowWrap;
+      ghostDiv.style.boxSizing = cs.boxSizing;
+      ghostDiv.style.pointerEvents = 'none';
+      // The .syl-a / .syl-b / .inline-tag styles in globals.css read
+      // `var(--syl-bg-alpha)` and friends — those custom properties live
+      // on the StudioLayout root. The ghostDiv is appended to <body> so
+      // it falls outside that subtree and the vars resolve to their
+      // :root defaults (e.g. 0.12 alpha) instead of the user's chosen
+      // values. Copy the CSS custom properties off the live editor's
+      // computed style so the snapshot's syllable boxes match what the
+      // user is staring at on screen.
+      [
+        '--syl-bg-alpha',
+        '--syl-match-rgb',
+        '--syl-mismatch-rgb',
+        '--syl-match-alpha-mul',
+        '--main-text-color',
+        '--main-canvas-color',
+      ].forEach((prop) => {
+        const v = cs.getPropertyValue(prop).trim();
+        if (v) ghostDiv.style.setProperty(prop, v);
+      });
+      document.body.appendChild(ghostDiv);
+      ghostNode = ghostDiv;
+
+      // Wait two frames so font metrics + layout settle before measuring.
+      await new Promise<void>((r) => requestAnimationFrame(() => r()));
+      await new Promise<void>((r) => requestAnimationFrame(() => r()));
+
+      const fullHeight = Math.max(ghostDiv.scrollHeight, ghostDiv.offsetHeight);
+
+      const html2canvas = (await import('html2canvas')).default;
+
+      // 10s safety timeout — if html2canvas hangs, bail rather than
+      // leaving the user stuck on the "Capturing ghost…" overlay.
+      // scale = devicePixelRatio so the rasterized snapshot matches the
+      // browser's native pixel grid. With scale: 1 on HiDPI displays the
+      // PNG was logical-resolution and got upscaled when blitted, which
+      // bumped the camouflage tails ~1px off the live boxes.
+      const dpr = (typeof window !== 'undefined' && window.devicePixelRatio) || 1;
+      const capturePromise: Promise<HTMLCanvasElement> = html2canvas(ghostDiv, {
+        backgroundColor: liveCanvas,
+        logging: false,
+        scale: dpr,
+        useCORS: true,
+        width,
+        height: fullHeight,
+      });
+      const timeoutPromise = new Promise<never>((_, rej) =>
+        setTimeout(() => rej(new Error('html2canvas timed out')), 10000)
+      );
+      const canvas = await Promise.race([capturePromise, timeoutPromise]);
+      const dataUrl = canvas.toDataURL('image/png');
+
+      enableGhost(dataUrl, { width, height: fullHeight });
+    } catch (err) {
+      console.warn('Ghost snapshot failed', err);
+      enableGhost(null);
+    } finally {
+      if (ghostNode?.parentNode) {
+        ghostNode.parentNode.removeChild(ghostNode);
+      }
+      setCapturing(false);
+    }
   }, [isGhostMode, lyricText, enableGhost, disableGhost]);
 
   useImperativeHandle(externalRef, () => ({ toggleGhost }), [toggleGhost]);
@@ -782,20 +882,28 @@ const LyricPad = forwardRef<LyricPadHandle>(function LyricPad(_, externalRef) {
 
       {/* Editor */}
       <div className="relative flex-1 min-h-0">
-        {/* Ghost-mode tracing overlay — pure HTML, NOT a rasterized PNG.
-         * The previous html2canvas snapshot path drifted by sub-pixels
-         * because canvas text rendering doesn't perfectly match the
-         * browser's native subpixel anti-aliasing. By rendering the
-         * camouflage as a real HTML block (same renderer as the live
-         * editor, same CSS class, same padding), the trace and the
-         * user's typed text line up byte-for-byte. */}
-        {isGhostMode && savedLyric && (
+        {/* Ghost-mode tracing-paper backdrop — placed INSIDE the editor's
+         * wrapper so it shares the editor's coordinate origin (top-left).
+         * When it lived in the captureRoot the LyricPad header (~26px)
+         * pushed everything below the bg image's text origin, so the
+         * snapshot's first line drew above where the user's first typed
+         * line landed. Sharing the wrapper means both start at y=0 with
+         * the same internal padding, so they line up perfectly. */}
+        {isGhostMode && ghostBgImage && (
           <div
             data-ghost-bg="true"
-            id="ghost-pad"
-            className="absolute top-0 left-0 w-full pointer-events-none z-0"
-            style={{ opacity: ghostBgOpacity }}
-            dangerouslySetInnerHTML={{ __html: buildGhostBottomHtml(savedLyric) }}
+            className="absolute pointer-events-none z-0"
+            style={{
+              top: 0,
+              left: 0,
+              width: ghostBgWidth || '100%',
+              height: ghostBgHeight || '100%',
+              backgroundImage: `url(${ghostBgImage})`,
+              backgroundRepeat: 'no-repeat',
+              backgroundPosition: 'top left',
+              backgroundSize: '100% 100%',
+              opacity: ghostBgOpacity,
+            }}
           />
         )}
         <div
@@ -803,7 +911,6 @@ const LyricPad = forwardRef<LyricPadHandle>(function LyricPad(_, externalRef) {
           ref={editorRef}
           contentEditable
           suppressContentEditableWarning
-          spellCheck={true}
           onInput={handleInput}
           onKeyDown={handleKeyDown}
           onKeyUp={scheduleCaret}
@@ -816,7 +923,7 @@ const LyricPad = forwardRef<LyricPadHandle>(function LyricPad(_, externalRef) {
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
-          data-placeholder={isGhostMode ? '' : 'Start writing your lyrics…'}
+          data-placeholder={isGhostMode ? 'Trace new lyrics over the ghost flow…' : 'Start writing your lyrics…'}
           className="relative z-10"
           style={{
             lineHeight: 'var(--line-h)',
@@ -840,6 +947,15 @@ const LyricPad = forwardRef<LyricPadHandle>(function LyricPad(_, externalRef) {
               : '0 0 8px rgba(99,179,237,0.7)',
           }}
         />
+      )}
+
+      {/* Capturing indicator */}
+      {capturing && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm z-30">
+          <div className="bg-studio-panel border border-studio-border rounded-lg px-4 py-2 text-sm text-purple-300">
+            👻 Capturing ghost…
+          </div>
+        </div>
       )}
 
       {/* Word pill web — press-and-hold a word to open */}

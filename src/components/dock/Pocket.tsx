@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useStudio } from '@/store/useStudio';
 import { dumpPocket, parsePocketDump } from '@/lib/libraryIO';
+import { useIsMobile } from '@/lib/useMediaQuery';
 
 interface Props {
   onClose: () => void;
@@ -15,16 +16,22 @@ export default function Pocket({ onClose, anchor }: Props) {
     pocketItems, addPocketItem, removePocketItem, clearPocket,
     addPad, setLyricText, lyricText, importPocketItems,
   } = useStudio();
+  const isMobile = useIsMobile();
   const [dragOver, setDragOver] = useState(false);
   const [pos, setPos] = useState<{ top: number; right: number } | null>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
 
-  // Anchor under the trigger button.
+  // Anchor under the trigger button on desktop. On phones we render a
+  // bottom sheet instead, so the anchor calc is skipped (pos stays the
+  // placeholder shape but isn't read).
   useEffect(() => {
-    if (!anchor) return;
+    if (!anchor || isMobile) {
+      if (isMobile) setPos({ top: 0, right: 0 });
+      return;
+    }
     const r = anchor.getBoundingClientRect();
     setPos({ top: r.bottom + 6, right: window.innerWidth - r.right });
-  }, [anchor]);
+  }, [anchor, isMobile]);
 
   // Close on outside click / Escape.
   useEffect(() => {
@@ -58,10 +65,22 @@ export default function Pocket({ onClose, anchor }: Props) {
   if (!pos) return null;
 
   return (
+    <>
+      {isMobile && (
+        <div
+          className="fixed inset-0 z-[140] bg-black/55 backdrop-blur-[2px]"
+          onClick={onClose}
+          aria-label="Close Pocket"
+        />
+      )}
     <div
       ref={popoverRef}
-      className="fixed z-[150] w-80 max-h-[70vh] flex flex-col bg-studio-panel border border-studio-border rounded-lg shadow-2xl"
-      style={{ top: pos.top, right: pos.right }}
+      className={
+        isMobile
+          ? 'fixed z-[150] left-0 right-0 bottom-0 max-h-[75dvh] flex flex-col bg-studio-panel border-t border-studio-border rounded-t-2xl shadow-2xl safe-bottom'
+          : 'fixed z-[150] w-80 max-h-[70vh] flex flex-col bg-studio-panel border border-studio-border rounded-lg shadow-2xl'
+      }
+      style={isMobile ? undefined : { top: pos.top, right: pos.right }}
     >
       <div className="flex items-center justify-between px-3 py-2 border-b border-studio-border bg-studio-surface">
         <span className="text-sm font-semibold text-purple-300">👜 Pocket</span>
@@ -142,8 +161,9 @@ export default function Pocket({ onClose, anchor }: Props) {
                 </span>
                 <button
                   onClick={() => removePocketItem(item.id)}
-                  className="opacity-0 group-hover:opacity-60 hover:!opacity-100 text-[10px] text-red-400"
+                  className="opacity-60 md:opacity-0 md:group-hover:opacity-60 hover:!opacity-100 text-base md:text-[10px] px-2 md:px-0 text-red-400"
                   title="Remove from pocket"
+                  aria-label="Remove from pocket"
                 >
                   ✕
                 </button>
@@ -153,5 +173,6 @@ export default function Pocket({ onClose, anchor }: Props) {
         )}
       </div>
     </div>
+    </>
   );
 }

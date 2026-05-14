@@ -73,15 +73,10 @@ export default function TagTray() {
     ? customTagCategories.find((c) => c.id === activeTab.slice(7))
     : undefined;
 
-  // Three zones, top-to-bottom:
-  //   - Header (fixed): title, brackets, tabs.
-  //   - Pill list (scrolls): grows + scrolls when there are too many tags
-  //     to fit; the header above it stays put so the rest of the UI
-  //     doesn't shift around when the user scrolls within the tray.
-  //   - Discovered drawer (fixed): only when there are discovered tags.
   return (
-    <div className="flex flex-col h-full min-h-0">
-      <div className="flex-shrink-0 px-3 pt-2 pb-2 bg-studio-panel border-b border-studio-border/50 flex flex-col gap-2">
+    <div className="flex flex-col gap-3">
+      {/* Sticky header — title + bracket selector + bulk edit */}
+      <div className="sticky top-0 -mx-3 px-3 -mt-3 pt-3 pb-2 bg-studio-panel z-10 border-b border-studio-border/50 flex flex-col gap-2">
         <div className="flex items-center justify-between gap-1">
           <span className="font-semibold text-studio-text text-sm">🏷 Tag Tray</span>
           <span className="text-[10px] text-studio-muted italic">
@@ -152,8 +147,6 @@ export default function TagTray() {
         </div>
       </div>
 
-      {/* Scrollable middle zone — custom-cat input (if any) + pill list. */}
-      <div className="flex-1 min-h-0 overflow-y-auto px-3 py-2 flex flex-col gap-2">
       {/* Inline "+" input for adding tags to a custom category. Hidden
        * for the standard categories which already have a Bulk Edit modal. */}
       {activeCustomCat && (
@@ -259,12 +252,10 @@ export default function TagTray() {
           ))
         )}
       </div>
-      </div>
 
-      {/* Discovered Tags Drawer — pinned at the bottom outside the scroll
-       * zone so it stays in view as the user browses tags. */}
+      {/* Discovered Tags Drawer */}
       {discoveredTags.length > 0 && (
-        <div className="flex-shrink-0 px-3 py-2 border-t border-studio-border bg-studio-panel">
+        <div className="mt-2 border-t border-studio-border pt-3">
           <div className="text-xs font-semibold text-orange-400 mb-2">
             🔍 Discovered ({discoveredTags.length})
             <span className="text-studio-muted font-normal ml-1">— drag to a category tab</span>

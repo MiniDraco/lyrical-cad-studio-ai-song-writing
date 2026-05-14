@@ -1,5 +1,4 @@
 import { getSuffixColor } from './colors';
-import { countSyllables } from './syllables';
 
 /** Matches any of [foo], {foo}, (foo), <foo> as a single tag.
  *  Group 1 is the label between the brackets. The opening + closing
@@ -94,13 +93,7 @@ function camouflageLine(line: string): string {
       // structure for someone reading the camouflaged trace.
       out += `<span style="color:rgba(226,232,240,0.45)">${escHtml(t.text)}</span>`;
     } else {
-      // Match the live editor's syllable-count coloring scheme so the
-      // snapshot's boxes and tails sit in the exact same places as the
-      // user's typed text. Using parity (.syl-a/.syl-b) here would
-      // shift the boxes whenever the typed line had a different word
-      // count than the ghost target.
-      const count = Math.max(1, Math.min(10, countSyllables(t.text)));
-      const cls = `syl-count-${count}`;
+      const cls = t.idx % 2 === 0 ? 'syl-a' : 'syl-b';
       if (rhymePoints.has(t.idx)) {
         const { before, tail, after } = splitTail(t.text);
         if (!tail) {
@@ -180,11 +173,10 @@ function tokenLineToHtml(
     } else if (t.kind === 'punct') {
       out += escHtml(t.text);
     } else {
-      // Color the syllable box by the WORD'S syllable count (1..10) so
-      // a glance at the line tells you the rhythm. Replaces the old
-      // alternating syl-a / syl-b parity which only varied by index.
-      const count = Math.max(1, Math.min(10, countSyllables(t.text)));
-      const cls = `syl-count-${count}` + matchCls;
+      const cls = (t.idx % 2 === 0 ? 'syl-a' : 'syl-b') + matchCls;
+      // Word Probe highlight (Datamuse topic match) wraps the syllable
+      // span so the box still renders. Use a clean alphabetic key so
+      // 'Diamond' and 'diamond,' both hit the same probe.
       const probeKey = wordHighlights
         ? t.text.replace(/[^A-Za-z]/g, '').toLowerCase()
         : '';
@@ -277,23 +269,29 @@ function splitTail(word: string): { before: string; tail: string; after: string 
 }
 
 /**
- * Render a word in the live editor as a SINGLE text node. The previous
- * implementation split each rhyme-point word into three sibling spans
- * (before / colored-tail / after) so the last 2 letters could carry the
- * suffix-rhyme color inline — but that fragmentation broke Chromium's
- * spellcheck context menu: the red squiggle still drew, but right-click
- * couldn't bind replacement suggestions back to a single text node, so
- * "Add to dictionary" / "Change to…" stopped appearing.
+ * Render a word with its syllable bg + last-2-letters in suffix-rhyme color.
  *
- * Rhyme color still surfaces in two places:
- *   - the SyllableGutter chip on each line (LineData.rhymeColor)
- *   - the ghost-mode camouflage layer (buildGhostBottomHtml keeps the
- *     3-span split because that path NEEDS to color individual letters
- *     to make its "everything invisible except the rhyme tail" effect
- *     work — and the ghost layer is non-editable, so spellcheck doesn't
- *     care).
+ * The DOM structure here is INTENTIONALLY identical to the camouflage
+ * branch in buildGhostBottomHtml — same span wrapping, same inline
+ * font-weight on the tail. Without that, the rasterized ghost snapshot
+ * and the live editor rendered the same text at slightly different
+ * sub-pixel positions (transparent-span before/after vs. plain text),
+ * which threw the visible 2-letter tails out of alignment with the
+ * snapshot boxes underneath.
  */
 function renderWordWithTail(word: string, sylClass: string): string {
-  return `<span class="${sylClass}">${escHtml(word)}</span>`;
+  const { before, tail, after } = splitTail(word);
+  if (!tail) {
+    return `<span class="${sylClass}">${escHtml(word)}</span>`;
+  }
+  const tailLetters = tail.replace(/[^a-zA-Z]/g, '').toLowerCase();
+  const color = getSuffixColor(tailLetters);
+  return (
+    `<span class="${sylClass}">` +
+    `<span>${escHtml(before)}</span>` +
+    `<span style="color:${color};font-weight:600">${escHtml(tail)}</span>` +
+    `<span>${escHtml(after)}</span>` +
+    `</span>`
+  );
 }
 

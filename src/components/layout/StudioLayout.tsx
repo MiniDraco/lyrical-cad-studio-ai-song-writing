@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { scanWordProbes } from '@/lib/probeScanner';
+import { useIsMobile } from '@/lib/useMediaQuery';
 import AlchemySidebar from '@/components/dock/AlchemySidebar';
 import LyricPad, { LyricPadHandle } from '@/components/editor/LyricPad';
 import SyllableGutter from '@/components/gutter/SyllableGutter';
@@ -9,7 +10,6 @@ import StyleStudio from '@/components/dock/StyleStudio';
 import CreativityTray from '@/components/dock/CreativityTray';
 import RandomGen from '@/components/dock/RandomGen';
 import Pocket from '@/components/dock/Pocket';
-import IntelliPane from '@/components/dock/IntelliPane';
 import SettingsModal from '@/components/layout/SettingsModal';
 import QuestModal from '@/components/layout/QuestModal';
 import HelpModal from '@/components/layout/HelpModal';
@@ -25,21 +25,69 @@ import {
 } from '@/lib/colors';
 
 export default function StudioLayout() {
-  // Open to a clean canvas — testers see the lyric pad and discover surfaces
-  // by clicking topbar buttons. Use the dock toggle (top-left ⏸ icon) for the
-  // tag tray and the "✦ Style Pad" button for the style surface.
-  const [dockOpen, setDockOpen] = useState(false);
-  const [styleOpen, setStyleOpen] = useState(false);
+  const isMobile = useIsMobile();
+  const [dockOpen, setDockOpen] = useState(true);
+  const [styleOpen, setStyleOpen] = useState(true);
   const [creativityOpen, setCreativityOpen] = useState(false);
   const [randomOpen, setRandomOpen] = useState(false);
   const [pocketOpen, setPocketOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [questOpen, setQuestOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
-  const [intelliPaneOpen, setIntelliPaneOpen] = useState(false);
   const pocketBtnRef = useRef<HTMLButtonElement>(null);
   const questBtnRef = useRef<HTMLButtonElement>(null);
-  const intelliBtnRef = useRef<HTMLButtonElement>(null);
+
+  // First time we detect we're on a phone, collapse the side dock and
+  // the bottom Style Pad so the editor isn't crushed into a 100px strip.
+  // The user can re-open them via the toolbar; we only auto-collapse on
+  // the *transition* into mobile, not every render.
+  const wasMobile = useRef<boolean | null>(null);
+  useEffect(() => {
+    if (wasMobile.current === null) {
+      wasMobile.current = isMobile;
+      if (isMobile) {
+        setDockOpen(false);
+        setStyleOpen(false);
+      }
+      return;
+    }
+    if (!wasMobile.current && isMobile) {
+      setDockOpen(false);
+      setStyleOpen(false);
+      setRandomOpen(false);
+      setCreativityOpen(false);
+    }
+    wasMobile.current = isMobile;
+  }, [isMobile]);
+
+  // On mobile, drawers shouldn't stack on top of each other — opening
+  // one auto-closes the other side drawers and the Style Pad. Desktop
+  // keeps the existing free-form multi-panel behavior.
+  const openDrawer = (which: 'dock' | 'random' | 'creativity' | 'style') => {
+    if (!isMobile) {
+      if (which === 'dock')       setDockOpen((o) => !o);
+      if (which === 'random')     setRandomOpen((o) => !o);
+      if (which === 'creativity') setCreativityOpen((o) => !o);
+      if (which === 'style')      setStyleOpen((o) => !o);
+      return;
+    }
+    const next = {
+      dock:       which === 'dock'       ? !dockOpen       : false,
+      random:     which === 'random'     ? !randomOpen     : false,
+      creativity: which === 'creativity' ? !creativityOpen : false,
+      style:      which === 'style'      ? !styleOpen      : false,
+    };
+    setDockOpen(next.dock);
+    setRandomOpen(next.random);
+    setCreativityOpen(next.creativity);
+    setStyleOpen(next.style);
+  };
+  const closeAllDrawers = () => {
+    setDockOpen(false);
+    setRandomOpen(false);
+    setCreativityOpen(false);
+  };
+  const anyDrawerOpen = isMobile && (dockOpen || randomOpen || creativityOpen);
   const {
     isGhostMode, rhythmicSkeleton, lyricText, customSylColors, pocketItems, addPocketItem,
     sylBgAlpha, ghostMatchColor, ghostMismatchColor, ghostMatchAlphaMul, catColors,
@@ -49,7 +97,7 @@ export default function StudioLayout() {
     addPad, bracketType, setBracketType,
     pads, setActivePad,
     uiScale, editorFontFamily, editorFontSize, editorFontBold, editorFontItalic,
-    chromeColors, buttonShape, pillShape,
+    chromeColors, buttonShape,
   } = useStudio();
 
   /* UI scale — sets `html { font-size }` so Tailwind's rem-based classes
@@ -152,45 +200,21 @@ export default function StudioLayout() {
   // Map slider 0..1 → CSS radius. 0 = sharp, 0.5 ≈ standard rounded,
   // 1 = full pill (large enough to hit any button height).
   // Named presets override the slider — they emit shorthand radii so we
-  // can do per-corner shapes (squared up/down) too. The polygon preset
-  // also emits a chamfered clip-path so it actually looks polygonal.
+  // can do per-corner shapes (squared up/down) too.
   const btnRadiusCss = (() => {
     switch (buttonShape) {
       case 'rectangle':    return '0';
       case 'rounded25':    return '0.25rem';
       case 'rounded50':    return '0.5rem';
       case 'circle':       return '9999px';
-      case 'poly':         return '0';
-      case 'squared-up':   return '9999px 9999px 0 0';
-      case 'squared-down': return '0 0 9999px 9999px';
+      case 'poly':         return '25% / 50%';        // squashed-ellipse
+      case 'squared-up':   return '9999px 9999px 0 0'; // top-only round
+      case 'squared-down': return '0 0 9999px 9999px'; // bottom-only round
       case 'free':
       default:
         return buttonRadius >= 0.99 ? '9999px' : `${buttonRadius * 1}rem`;
     }
   })();
-  const btnClipPath = buttonShape === 'poly'
-    ? 'polygon(6px 0, calc(100% - 6px) 0, 100% 6px, 100% calc(100% - 6px), calc(100% - 6px) 100%, 6px 100%, 0 calc(100% - 6px), 0 6px)'
-    : 'none';
-
-  /* Same shape vocabulary for pills — mirrored from button presets so
-   * the user gets a consistent UI. Default is 'circle' which preserves
-   * the original full-pill look. */
-  const pillRadiusCss = (() => {
-    switch (pillShape) {
-      case 'rectangle':    return '0';
-      case 'rounded25':    return '0.25rem';
-      case 'rounded50':    return '0.5rem';
-      case 'circle':       return '999px';
-      case 'poly':         return '0';
-      case 'squared-up':   return '999px 999px 0 0';
-      case 'squared-down': return '0 0 999px 999px';
-      case 'free':
-      default:             return '999px';
-    }
-  })();
-  const pillClipPath = pillShape === 'poly'
-    ? 'polygon(6px 0, calc(100% - 6px) 0, 100% 6px, 100% calc(100% - 6px), calc(100% - 6px) 100%, 6px 100%, 0 calc(100% - 6px), 0 6px)'
-    : 'none';
   // Push the rhyme palette into the lib singleton so getSuffixColor()
   // returns the user's choices for new rebuilds (and stays cached).
   setRhymePalette(rhymePalette);
@@ -223,9 +247,6 @@ export default function StudioLayout() {
         ['--main-text-color' as string]: mainTextColor,
         ['--main-canvas-color' as string]: mainCanvasColor,
         ['--btn-radius' as string]: btnRadiusCss,
-        ['--btn-clip-path' as string]: btnClipPath,
-        ['--pill-radius' as string]: pillRadiusCss,
-        ['--pill-clip-path' as string]: pillClipPath,
         ['--editor-font-family' as string]: editorFontFamily,
         ['--editor-font-size' as string]: `${editorFontSize}px`,
         ['--editor-font-weight' as string]: editorFontBold ? '700' : '400',
@@ -244,18 +265,6 @@ export default function StudioLayout() {
         return `.${cls}{background:rgba(${rgb},0.18);border-color:rgba(${rgb},0.3);color:color-mix(in srgb, ${hex} 40%, white);}`;
       }).join('\n')}</style>
 
-      {/* Per-syllable-count box colors. Driven by the user's customSylColors
-       * palette so a 1-syllable word picks slot 1, a 5-syllable word slot 5,
-       * etc. Replaces the old syl-a/syl-b parity coloring — this way the
-       * box hue actually reflects the rhythm of each word at a glance.
-       * Small horizontal padding keeps the colored 2-letter rhyme tail
-       * from sitting flush on the box's right edge. */}
-      <style>{Array.from({ length: 10 }, (_, i) => i + 1).map((n) => {
-        const hex = customSylColors[n] ?? DEFAULT_SYL_PALETTE[n];
-        const rgb = hexToRgbTriplet(hex);
-        return `.syl-count-${n}{background:rgba(${rgb},var(--syl-bg-alpha));border-bottom:1px solid rgba(${rgb},0.35);border-radius:3px;padding:0 3px;}`;
-      }).join('\n')}</style>
-
       {/* Chrome color overrides — empty string = inherit Tailwind theme.
        * Emitted as a dynamic <style> with !important so they win against
        * the per-class utility rules. */}
@@ -265,66 +274,63 @@ export default function StudioLayout() {
         chromeColors.border  && `.border-studio-border{border-color:${chromeColors.border}!important;}`,
         chromeColors.muted   && `.text-studio-muted{color:${chromeColors.muted}!important;}`,
       ].filter(Boolean).join('\n')}</style>
-      {/* ─── Top Bar ─────────────────────────────────────
-       * flex-wrap so the chrome reflows onto multiple rows on narrow
-       * (phone) viewports instead of clipping or horizontal-scrolling. */}
-      <header className="flex-shrink-0 flex flex-wrap items-center gap-2 px-3 py-2 border-b border-studio-border bg-studio-surface">
-        <div className="flex items-center gap-2 mr-2">
-          <span className="text-blue-400 font-bold text-lg tracking-tight">LyricalCAD</span>
-          <span className="text-studio-muted text-xs font-mono bg-studio-panel px-1.5 py-0.5 rounded">
+      {/* ─── Top Bar ───────────────────────────────────── */}
+      <header className="flex-shrink-0 flex flex-wrap md:flex-nowrap items-center gap-1.5 md:gap-3 px-2 md:px-4 py-2 border-b border-studio-border bg-studio-surface safe-top">
+        <div className="flex items-center gap-2 mr-1 md:mr-2">
+          <span className="text-blue-400 font-bold text-base md:text-lg tracking-tight">LyricalCAD</span>
+          <span className="hidden sm:inline text-studio-muted text-xs font-mono bg-studio-panel px-1.5 py-0.5 rounded">
             Studio
           </span>
         </div>
 
         <button
-          onClick={() => setDockOpen((o) => !o)}
-          className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium transition-all border ${
-            dockOpen
-              ? 'bg-orange-600/20 text-orange-300 border-orange-500/40'
-              : 'text-studio-muted hover:text-studio-text border-studio-border hover:border-studio-text/30'
-          }`}
-          title={dockOpen
-            ? 'Collapse the Tag Tray sidebar'
-            : 'Open the Tag Tray — your reusable pills, branches, and custom categories'}
+          onClick={() => openDrawer('dock')}
+          className="p-2 md:p-1.5 rounded text-studio-muted hover:text-studio-text hover:bg-studio-hover transition-colors"
+          title={dockOpen ? 'Collapse dock' : 'Expand dock'}
+          aria-label={dockOpen ? 'Collapse dock' : 'Expand dock'}
         >
-          <span>🏷</span>
-          <span>Tags</span>
+          <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor">
+            {dockOpen ? <path d="M6 2H2v12h4V2zm2 0v12h6V2H8z" opacity=".6" />
+                     : <path d="M2 2h12v12H2V2zm2 2v8h8V4H4z" opacity=".6" />}
+          </svg>
         </button>
 
         <button
-          onClick={() => setStyleOpen((o) => !o)}
-          className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium transition-all border ${
+          onClick={() => openDrawer('style')}
+          className={`flex items-center gap-1.5 px-2.5 py-1.5 md:py-1 rounded text-xs font-medium transition-all border ${
             styleOpen
               ? 'bg-teal-600/20 text-teal-300 border-teal-500/40'
               : 'text-studio-muted hover:text-studio-text border-studio-border hover:border-studio-text/30'
           }`}
           title="Toggle Style Studio pad"
+          aria-label="Toggle Style Studio pad"
         >
           <span>✦</span>
-          <span>Style Pad</span>
+          <span className="hidden sm:inline">Style Pad</span>
         </button>
 
-        <div className="h-5 w-px bg-studio-border mx-1" />
+        <div className="hidden md:block h-5 w-px bg-studio-border mx-1" />
 
         <button
           onClick={handleGhostClick}
-          className={`flex items-center gap-1.5 px-3 py-1 rounded text-sm font-medium transition-all ${
+          className={`flex items-center gap-1.5 px-2.5 md:px-3 py-1.5 md:py-1 rounded text-sm font-medium transition-all ${
             isGhostMode
               ? 'bg-purple-600/30 text-purple-300 border border-purple-500/50 shadow-[0_0_12px_rgba(168,85,247,0.3)]'
               : 'text-studio-muted hover:text-studio-text border border-studio-border hover:border-studio-text/30'
           }`}
           title={isGhostMode ? 'Exit Ghost — restore lyrics' : 'Ghost Mode — snapshot trace the current flow'}
+          aria-label={isGhostMode ? 'Exit Ghost Mode' : 'Enter Ghost Mode'}
         >
           <span>{isGhostMode ? '👻' : '🔓'}</span>
-          <span>{isGhostMode ? 'Ghost Active' : 'Ghost Mode'}</span>
+          <span className="hidden sm:inline">{isGhostMode ? 'Ghost Active' : 'Ghost Mode'}</span>
         </button>
 
         {isGhostMode && (
           <>
-            <span className="text-xs text-purple-400 animate-pulse">
+            <span className="hidden md:inline text-xs text-purple-400 animate-pulse">
               Tracing
             </span>
-            <label className="flex items-center gap-1.5 text-[10px] text-studio-muted">
+            <label className="hidden md:flex items-center gap-1.5 text-[10px] text-studio-muted">
               <span>Trace</span>
               <input
                 type="range"
@@ -370,15 +376,16 @@ export default function StudioLayout() {
             if (text) addPocketItem(text);
             setPocketOpen(true);
           }}
-          className={`ml-auto flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium transition-all border ${
+          className={`ml-auto flex items-center gap-1.5 px-2.5 py-1.5 md:py-1 rounded text-xs font-medium transition-all border ${
             pocketOpen
               ? 'bg-purple-600/25 text-purple-200 border-purple-500/50'
               : 'text-studio-muted hover:text-studio-text border-studio-border hover:border-studio-text/30'
           }`}
           title="Pocket — drag selected text or pills here to keep them; drag back into a pad to inject"
+          aria-label="Open Pocket"
         >
           <span>👜</span>
-          <span>Pocket</span>
+          <span className="hidden sm:inline">Pocket</span>
           {pocketItems.length > 0 && (
             <span className="bg-purple-500 text-white text-[10px] rounded-full px-1.5 leading-4 min-w-[18px] text-center">
               {pocketItems.length}
@@ -404,22 +411,24 @@ export default function StudioLayout() {
 
         <button
           onClick={() => setHelpOpen(true)}
-          className="p-1.5 text-studio-muted hover:text-studio-text hover:bg-studio-hover"
+          className="p-2 md:p-1.5 text-studio-muted hover:text-studio-text hover:bg-studio-hover"
           title="Quick reference (Ctrl+?)"
+          aria-label="Help"
         >
           ❓
         </button>
 
         <button
           onClick={() => setSettingsOpen(true)}
-          className="p-1.5 rounded text-studio-muted hover:text-studio-text hover:bg-studio-hover"
+          className="p-2 md:p-1.5 rounded text-studio-muted hover:text-studio-text hover:bg-studio-hover"
           title="Settings (Ctrl+,)"
+          aria-label="Settings"
         >
           ⚙️
         </button>
 
         <button
-          className="flex items-center gap-1.5 px-2 py-0.5 rounded border border-studio-border bg-studio-bg/50 hover:border-studio-text/30 transition-colors"
+          className="hidden lg:flex items-center gap-1.5 px-2 py-0.5 rounded border border-studio-border bg-studio-bg/50 hover:border-studio-text/30 transition-colors"
           title="Each line's syllable count is colored by this scale — click to open settings"
           onClick={() => setSettingsOpen(true)}
         >
@@ -437,20 +446,48 @@ export default function StudioLayout() {
           <span className="ml-1 text-[10px] text-studio-muted opacity-70" title="Click to open Settings">⌨</span>
         </button>
 
-        <div className="flex items-center gap-4 text-xs text-studio-muted font-mono">
+        {/* Stats — full strip on lg+, compact 3-icon strip on md, hidden on phone */}
+        <div className="hidden lg:flex items-center gap-4 text-xs text-studio-muted font-mono">
           <span>Lines: <span className="text-studio-text">{lineCount}</span></span>
           <span>Syllables: <span className="text-studio-text">{totalSyllables}</span></span>
           <span>Chars: <span className="text-studio-text">{charCount}</span></span>
         </div>
+        <div
+          className="hidden md:flex lg:hidden items-center gap-2 text-[10px] text-studio-muted font-mono"
+          title={`${lineCount} lines · ${totalSyllables} syllables · ${charCount} chars`}
+        >
+          <span>L<span className="text-studio-text ml-0.5">{lineCount}</span></span>
+          <span>S<span className="text-studio-text ml-0.5">{totalSyllables}</span></span>
+          <span>C<span className="text-studio-text ml-0.5">{charCount}</span></span>
+        </div>
       </header>
 
       {/* ─── Main Layout ───────────────────────────────── */}
-      <div className="flex flex-1 min-h-0 overflow-hidden">
+      <div className="relative flex flex-1 min-h-0 overflow-hidden">
+        {/* Mobile drawer backdrop. Tap to close all drawers. */}
+        {anyDrawerOpen && (
+          <div
+            className="mobile-drawer-backdrop"
+            onClick={closeAllDrawers}
+            aria-label="Close panels"
+          />
+        )}
+
+        {/* Alchemy dock — inline column on md+, slide-in drawer on phone. */}
         <aside
-          className="flex-shrink-0 border-r border-studio-border bg-studio-panel overflow-hidden transition-all duration-200"
-          style={{ width: dockOpen ? 300 : 0 }}
+          className={
+            isMobile
+              ? `mobile-drawer left bg-studio-panel transition-transform duration-200 ${
+                  dockOpen ? 'translate-x-0' : '-translate-x-full'
+                }`
+              : 'flex-shrink-0 border-r border-studio-border bg-studio-panel overflow-hidden transition-all duration-200'
+          }
+          style={isMobile ? undefined : { width: dockOpen ? 300 : 0 }}
         >
-          <div style={{ width: 300 }} className="h-full">
+          <div
+            style={isMobile ? { width: '100%' } : { width: 300 }}
+            className="h-full overflow-y-auto"
+          >
             <AlchemySidebar />
           </div>
         </aside>
@@ -476,14 +513,18 @@ export default function StudioLayout() {
           </div>
 
           {styleOpen && (
-            <div className="flex-shrink-0 border-t border-studio-border bg-studio-panel relative" style={{ height: '32%' }}>
+            <div
+              className="flex-shrink-0 border-t border-studio-border bg-studio-panel relative"
+              style={{ height: isMobile ? '45%' : '32%' }}
+            >
               <div className="h-full flex flex-col">
                 <div className="flex items-center justify-between px-3 py-1.5 border-b border-studio-border bg-studio-surface">
                   <span className="text-xs font-semibold text-teal-400">✦ Style Studio Pad</span>
                   <button
                     onClick={() => setStyleOpen(false)}
-                    className="text-studio-muted hover:text-studio-text text-xs"
+                    className="p-2 md:p-0 text-studio-muted hover:text-studio-text text-xs"
                     title="Close pad"
+                    aria-label="Close Style Pad"
                   >
                     ✕
                   </button>
@@ -496,22 +537,41 @@ export default function StudioLayout() {
           )}
         </div>
 
+        {/* Random generator — inline column on md+, right-slide drawer on phone. */}
         <aside
-          className="flex-shrink-0 border-l border-studio-border bg-studio-panel overflow-hidden transition-all duration-200"
-          style={{ width: randomOpen ? 280 : 0 }}
+          className={
+            isMobile
+              ? `mobile-drawer right bg-studio-panel transition-transform duration-200 ${
+                  randomOpen ? 'translate-x-0' : 'translate-x-full'
+                }`
+              : 'flex-shrink-0 border-l border-studio-border bg-studio-panel overflow-hidden transition-all duration-200'
+          }
+          style={isMobile ? undefined : { width: randomOpen ? 280 : 0 }}
         >
-          <div style={{ width: 280 }} className="h-full">
-            {randomOpen && <RandomGen />}
+          <div
+            style={isMobile ? { width: '100%' } : { width: 280 }}
+            className="h-full overflow-y-auto"
+          >
+            {(randomOpen || !isMobile) && <RandomGen />}
           </div>
         </aside>
 
-        {/* Creativity tray hosts iframes — only mount when open so external
-            sites aren't loading in the background when the panel is hidden. */}
+        {/* Creativity tray — wider drawer on phone (iframes need room).
+         * iframes only mount while open so they don't fetch in the background. */}
         <aside
-          className="flex-shrink-0 border-l border-studio-border bg-studio-panel overflow-hidden transition-all duration-200"
-          style={{ width: creativityOpen ? 480 : 0 }}
+          className={
+            isMobile
+              ? `mobile-drawer right wide bg-studio-panel transition-transform duration-200 ${
+                  creativityOpen ? 'translate-x-0' : 'translate-x-full'
+                }`
+              : 'flex-shrink-0 border-l border-studio-border bg-studio-panel overflow-hidden transition-all duration-200'
+          }
+          style={isMobile ? undefined : { width: creativityOpen ? 480 : 0 }}
         >
-          <div style={{ width: 480 }} className="h-full">
+          <div
+            style={isMobile ? { width: '100%' } : { width: 480 }}
+            className="h-full overflow-y-auto"
+          >
             {creativityOpen && <CreativityTray />}
           </div>
         </aside>
@@ -525,73 +585,60 @@ export default function StudioLayout() {
       {pocketOpen && (
         <Pocket onClose={() => setPocketOpen(false)} anchor={pocketBtnRef.current} />
       )}
-      {intelliPaneOpen && (
-        <IntelliPane onClose={() => setIntelliPaneOpen(false)} anchor={intelliBtnRef.current} />
-      )}
 
-      <footer className="flex-shrink-0 flex flex-wrap items-center gap-2 px-3 py-1 border-t border-studio-border bg-studio-surface text-xs text-studio-muted">
+      <footer className="flex-shrink-0 flex flex-wrap items-center gap-1.5 md:gap-2 px-2 md:px-4 py-1.5 md:py-1 border-t border-studio-border bg-studio-surface text-xs text-studio-muted safe-bottom">
         <button
           ref={questBtnRef}
           onClick={() => setQuestOpen((o) => !o)}
-          className={`flex items-center gap-1 px-2 py-0.5 rounded border transition-colors ${
+          className={`flex items-center gap-1 px-2 py-1 md:py-0.5 rounded border transition-colors ${
             questOpen
               ? 'bg-amber-600/30 text-amber-200 border-amber-400/60'
               : 'text-amber-300 border-amber-500/30 hover:bg-amber-600/20 hover:border-amber-400/50'
           }`}
           title="Quest log — saved writing constraints"
+          aria-label="Toggle Quest log"
         >
-          🎯 Quest
+          🎯 <span className="hidden sm:inline">Quest</span>
         </button>
 
         <button
-          onClick={() => setCreativityOpen((o) => !o)}
-          className={`flex items-center gap-1 px-2 py-0.5 rounded border transition-colors ${
+          onClick={() => openDrawer('creativity')}
+          className={`flex items-center gap-1 px-2 py-1 md:py-0.5 rounded border transition-colors ${
             creativityOpen
               ? 'bg-pink-600/30 text-pink-200 border-pink-400/60'
               : 'text-pink-300 border-pink-500/30 hover:bg-pink-600/20 hover:border-pink-400/50'
           }`}
           title="Toggle Creativity Tray (web frames)"
+          aria-label="Toggle Creativity tray"
         >
-          🌐 Creativity
+          🌐 <span className="hidden sm:inline">Creativity</span>
         </button>
 
         <button
-          onClick={() => setRandomOpen((o) => !o)}
-          className={`flex items-center gap-1 px-2 py-0.5 rounded border transition-colors ${
+          onClick={() => openDrawer('random')}
+          className={`flex items-center gap-1 px-2 py-1 md:py-0.5 rounded border transition-colors ${
             randomOpen
               ? 'bg-amber-600/30 text-amber-200 border-amber-400/60'
               : 'text-amber-300 border-amber-500/30 hover:bg-amber-600/20 hover:border-amber-400/50'
           }`}
           title="Toggle Random Generator"
+          aria-label="Toggle Random generator"
         >
-          🎲 Random
+          🎲 <span className="hidden sm:inline">Random</span>
         </button>
 
-        <button
-          ref={intelliBtnRef}
-          onClick={() => setIntelliPaneOpen((o) => !o)}
-          className={`flex items-center gap-1 px-2 py-0.5 rounded border transition-colors ${
-            intelliPaneOpen
-              ? 'bg-blue-600/30 text-blue-200 border-blue-400/60'
-              : 'text-blue-300 border-blue-500/30 hover:bg-blue-600/20 hover:border-blue-400/50'
-          }`}
-          title="Words pane — Datamuse suggestions for the word at the caret"
+        <span className="hidden md:inline text-studio-border">|</span>
+        <span className="hidden md:inline">LyricalCAD Studio v1.0</span>
+        {/* Phone-only condensed stats — replaces the version string with
+         * the at-a-glance counts the desktop header shows in full. */}
+        <span
+          className="md:hidden flex items-center gap-2 text-[10px] font-mono ml-1"
+          title={`${lineCount} lines · ${totalSyllables} syllables · ${charCount} chars`}
         >
-          🧠 Words
-        </button>
-
-        <span className="text-studio-border">|</span>
-        <span>LyricalCAD Studio v1.0</span>
-        <a
-          href="https://cash.app/$minidraco711"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-pink-400/80 hover:text-pink-300 underline decoration-dotted"
-          title="If LyricalCAD made your writing easier, drop a coffee tip — Cash App: $minidraco711"
-        >
-          ☕ buy me a coffee · $minidraco711
-        </a>
-        <span className="ml-auto">
+          <span>L<span className="text-studio-text ml-0.5">{lineCount}</span></span>
+          <span>S<span className="text-studio-text ml-0.5">{totalSyllables}</span></span>
+        </span>
+        <span className="ml-auto hidden md:inline">
           Syl-A <span className="inline-block w-3 h-3 rounded-sm syl-a align-middle" />
           &nbsp;Syl-B <span className="inline-block w-3 h-3 rounded-sm syl-b align-middle" />
           &nbsp;· Tags{' '}
