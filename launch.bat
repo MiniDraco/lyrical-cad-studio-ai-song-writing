@@ -85,10 +85,35 @@ if "!_loc_choice!"=="2" (
   REM Strip surrounding quotes if the user typed them
   if defined _install_path set "_install_path=!_install_path:"=!"
 
+  REM Strip trailing backslash unless it's a bare drive root like "D:\"
+  if defined _install_path if "!_install_path:~-1!"=="\" if not "!_install_path:~-2!"==":\" set "_install_path=!_install_path:~0,-1!"
+
   if "!_install_path!"=="" (
     echo  [!] No path entered. Falling back to default location.
   ) else (
-    set "_install_args=--location "!_install_path!""
+    REM Make sure the drive actually exists on this machine
+    set "_drv=!_install_path:~0,2!"
+    if not exist "!_drv!\" (
+      echo  [!] Drive !_drv! is not available on this machine.
+      echo      Falling back to default install location.
+      set "_install_path="
+    ) else (
+      REM Create the target folder if it doesn't exist yet.
+      REM winget --location won't create it for you, so a missing
+      REM folder is the #1 cause of "winget install failed" here.
+      if not exist "!_install_path!\" (
+        echo  [setup] Creating folder !_install_path! ...
+        mkdir "!_install_path!" 2>nul
+        if errorlevel 1 (
+          echo  [!] Could not create !_install_path!.
+          echo      Check the path is valid and you have write
+          echo      permissions, then try again.
+          echo      Falling back to default install location.
+          set "_install_path="
+        )
+      )
+      if defined _install_path set "_install_args=--location "!_install_path!""
+    )
   )
 )
 
